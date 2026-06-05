@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5332/digital_lending_db
+    username: digital_lending_user
+    password: digital_lending_password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+jwt:
+  secret: myDevSuperSecretKeyForTokenGeneration
+  tokenValiditySpan: 1800000 # 30 minutes

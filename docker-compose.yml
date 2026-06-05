@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: digital_lending_container
+    environment:
+      POSTGRES_USER: digital_lending_user
+      POSTGRES_PASSWORD: digital_lending_password
+      POSTGRES_DB: digital_lending_db
+    ports:
+      - "5332:5432"
