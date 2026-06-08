@@ -1,5 +1,4 @@
-package com.digital.lending.creditscoring;
-
+package com.digital.lending.creditscoring.enums;
 
 public enum RuleOperator {
     LESS_THAN,

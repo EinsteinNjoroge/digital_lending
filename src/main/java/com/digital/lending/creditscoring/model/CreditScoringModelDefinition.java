@@ -1,10 +1,11 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.Type;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import java.time.ZonedDateTime;
+import com.digital.lending.creditscoring.model.ScoringRulesPayload;
 
 @Entity
 @Table(name = "credit_scoring_model_definition")

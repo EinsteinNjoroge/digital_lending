@@ -1,4 +1,4 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,10 +15,6 @@ import java.util.stream.Collectors;
 @RestControllerAdvice(value = "com.digital.lending.creditscoring", name = "creditScoringExceptionHandler")
 public class GlobalExceptionHandler {
 
-    /**
-     * Handle business logic validation constraints and multi-tenant coordinate collisions.
-     * Maps onto HTTP 409 Conflict (ideal for duplicated/colliding state) or HTTP 400 Bad Request.
-     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Business policy restriction triggered: {}", ex.getMessage());
@@ -33,10 +29,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
-    /**
-     * Handle missing entity lookup mismatches.
-     * Maps onto HTTP 404 Not Found.
-     */
     @ExceptionHandler(RecordNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleRecordNotFoundException(RecordNotFoundException ex) {
         log.warn("Target database record lookup failure: {}", ex.getMessage());
@@ -51,10 +43,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    /**
-     * Handle controller schema request field body validation failures (e.g., missing @NotBlank or @NotNull fields).
-     * Maps onto HTTP 400 Bad Request.
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         String validationErrors = ex.getBindingResult().getFieldErrors().stream()
@@ -73,10 +61,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    /**
-     * Catch-all fallback interceptor to cleanly wrap unmapped underlying exceptions.
-     * Maps onto HTTP 500 Internal Server Error.
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGenericException(Exception ex) {
         log.error("Unhandled runtime technical system fault captured by fallback routine", ex);

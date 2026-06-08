@@ -1,6 +1,7 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.repository;
 
 
+import com.digital.lending.creditscoring.model.CreditScoringDecisionLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;

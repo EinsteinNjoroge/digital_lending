@@ -1,5 +1,11 @@
 package com.digital.lending.creditscoring;
 
+import com.digital.lending.creditscoring.dto.CreditScoringModelRequestDto;
+import com.digital.lending.creditscoring.dto.CreditScoringModelResponseDto;
+import com.digital.lending.creditscoring.model.CreditScoringModelDefinition;
+import com.digital.lending.creditscoring.model.ScoringRulesPayload;
+import com.digital.lending.creditscoring.repository.CreditScoringModelRepository;
+import com.digital.lending.creditscoring.service.CreditScoringModelManagementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

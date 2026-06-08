@@ -1,4 +1,4 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.model;
 
 import jakarta.persistence.*;
 import lombok.Builder;

@@ -1,5 +1,6 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.model;
 
+import com.digital.lending.creditscoring.enums.RuleOperator;
 import lombok.Data;
 
 @Data

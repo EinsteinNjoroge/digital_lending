@@ -1,5 +1,14 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.service;
 
+import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.ScoringRequestDto;
+import com.digital.lending.creditscoring.model.CreditScoringDecisionLog;
+import com.digital.lending.creditscoring.model.CreditScoringModelDefinition;
+import com.digital.lending.creditscoring.model.FeatureWeightConfig;
+import com.digital.lending.creditscoring.model.KnockOutRule;
+import com.digital.lending.creditscoring.model.ScoringRulesPayload;
+import com.digital.lending.creditscoring.repository.CreditScoringDecisionLogRepository;
+import com.digital.lending.creditscoring.repository.CreditScoringModelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,12 +25,8 @@ public class CreditScoringOrchestrationEngine {
 
     private final RuleEvaluationEngine evaluationEngine;
     private final CreditScoringDecisionLogRepository decisionLogRepository;
-    private final CreditScoringModelRepository modelRepository; // Injected to resolve database routing queries
+    private final CreditScoringModelRepository modelRepository;
 
-    /**
-     * Resolves active abstract rule matrix properties from database using routing coordinates
-     * before running the execution evaluation engine.
-     */
     public CreditDecisionResponse resolveAndEvaluate(String partnerId, String currency, ScoringRequestDto request) {
         CreditScoringModelDefinition activeModel = modelRepository.findActiveModel(partnerId, currency, request.getModelCode())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -39,11 +44,6 @@ public class CreditScoringOrchestrationEngine {
         );
     }
 
-    /**
-     * Executes the object-mapped credit scoring risk evaluation pipeline.
-     * Evaluates hard knockouts, calculates cumulative scoring parameters, computes credit bounds,
-     * and persists an unalterable transaction trace snapshot for audit logs and ML profiling.
-     */
     @Transactional
     public CreditDecisionResponse evaluateCreditRisk(
             String transactionId,
@@ -52,7 +52,7 @@ public class CreditScoringOrchestrationEngine {
             String currency,
             String modelDefinitionId,
             Map<String, String> resolvedFeatures,
-            ScoringRulesPayload rules) { // Accepts the pre-parsed object graph directly
+            ScoringRulesPayload rules) {
 
         Map<String, String> auditTrace = new HashMap<>();
         String decisionOutcome = "DECLINED";
@@ -60,7 +60,6 @@ public class CreditScoringOrchestrationEngine {
         double computedLimit = 0.0;
 
         try {
-            // 1. Process Knock-Out (KO) Hard Filters to save computing resources
             if (rules.getKnockOutRules() != null) {
                 for (KnockOutRule koRule : rules.getKnockOutRules()) {
                     boolean isTriggered = evaluationEngine.evaluatesKnockOut(koRule, resolvedFeatures);
@@ -74,7 +73,6 @@ public class CreditScoringOrchestrationEngine {
                 }
             }
 
-            // 2. Compute Dynamic Scoring Variables from Feature Store Context Map
             if (rules.getScoringWeights() != null) {
                 for (FeatureWeightConfig weightConfig : rules.getScoringWeights()) {
                     double pointsAllocated = evaluationEngine.calculateFeaturePoints(weightConfig, resolvedFeatures);
@@ -83,7 +81,6 @@ public class CreditScoringOrchestrationEngine {
                 }
             }
 
-            // 3. Threshold Evaluation Matrix Verification
             double minRequired = rules.getDecisionThresholds() != null ? rules.getDecisionThresholds().getMinimumScoreRequired() : 0.0;
             if (finalScore < minRequired) {
                 decisionOutcome = "DECLINED";
@@ -93,8 +90,6 @@ public class CreditScoringOrchestrationEngine {
                         finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
             }
 
-            // 4. Dynamic Limit Matrix Custom Calibration
-            // Resolves baseline transactional volume reference variable directly from features bucket payload
             double referenceVolume = Double.parseDouble(resolvedFeatures.getOrDefault("wallet_throughput_30d", "0.0"));
             double baseMultiplier = rules.getDecisionThresholds() != null ? rules.getDecisionThresholds().getBaseMultiplier() : 0.0;
             computedLimit = referenceVolume * baseMultiplier;
@@ -104,7 +99,7 @@ public class CreditScoringOrchestrationEngine {
 
         } catch (Exception e) {
             log.error("Failed to execute risk matrix evaluation loop context for customer: {}", customerId, e);
-            decisionOutcome = "REFERRED"; // Safe fallback configuration target for runtime exceptions
+            decisionOutcome = "REFERRED";
             auditTrace.put("ENGINE_SYSTEM_ERROR", e.getMessage());
             computedLimit = 0.0;
             finalScore = 0.0;
@@ -114,10 +109,6 @@ public class CreditScoringOrchestrationEngine {
                 finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
     }
 
-    /**
-     * Builds and saves an immutable ledger log tracking the state configuration inputs/outputs
-     * exactly as they existed during processing execution.
-     */
     private CreditDecisionResponse persistAndReturn(
             String transactionId,
             String customerId,
@@ -139,7 +130,7 @@ public class CreditScoringOrchestrationEngine {
                     .decisionOutcome(decisionOutcome)
                     .creditLimitAllocated(computedLimit)
                     .featureSnapshot(resolvedFeatures)
-                    .evaluationTrace(auditTrace) // Maps cleanly onto evaluationTrace property name schema
+                    .evaluationTrace(auditTrace)
                     .evaluatedAt(ZonedDateTime.now())
                     .build();
 
@@ -147,7 +138,6 @@ public class CreditScoringOrchestrationEngine {
 
         } catch (Exception ex) {
             log.error("Critical Failure: Unable to persist structural transaction audit logs to database instance path: {}", transactionId, ex);
-            // Append infrastructure errors directly onto payload response to maintain execution tracing insight visibility
             auditTrace.put("PERSISTENCE_FAULT_WARNING", "Log failed execution payload write boundary: " + ex.getMessage());
         }
 

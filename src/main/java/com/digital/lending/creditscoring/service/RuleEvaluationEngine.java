@@ -1,5 +1,9 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.service;
 
+import com.digital.lending.creditscoring.enums.RuleOperator;
+import com.digital.lending.creditscoring.model.FeatureWeightConfig;
+import com.digital.lending.creditscoring.model.KnockOutRule;
+import com.digital.lending.creditscoring.model.ScoreRange;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 
@@ -8,7 +12,7 @@ public class RuleEvaluationEngine {
 
     public boolean evaluatesKnockOut(KnockOutRule rule, Map<String, String> features) {
         if (!features.containsKey(rule.getFeature())) {
-            return true; // Knock out if data is missing for risk aversion
+            return true;
         }
 
         String rawValue = features.get(rule.getFeature());
@@ -27,7 +31,7 @@ public class RuleEvaluationEngine {
 
     public double calculateFeaturePoints(FeatureWeightConfig config, Map<String, String> features) {
         if (!features.containsKey(config.getFeature())) {
-            return 0.0; // Neutral fallback assignment if missing
+            return 0.0;
         }
 
         double val = Double.parseDouble(features.get(config.getFeature()));

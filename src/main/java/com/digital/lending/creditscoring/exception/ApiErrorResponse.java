@@ -1,4 +1,4 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.exception;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

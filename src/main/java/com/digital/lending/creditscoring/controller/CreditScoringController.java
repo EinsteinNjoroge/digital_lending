@@ -1,5 +1,11 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.controller;
 
+import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.CreditScoringModelRequestDto;
+import com.digital.lending.creditscoring.dto.CreditScoringModelResponseDto;
+import com.digital.lending.creditscoring.dto.ScoringRequestDto;
+import com.digital.lending.creditscoring.service.CreditScoringModelManagementService;
+import com.digital.lending.creditscoring.service.CreditScoringOrchestrationEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;

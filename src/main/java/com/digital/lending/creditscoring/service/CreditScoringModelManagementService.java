@@ -1,5 +1,10 @@
-package com.digital.lending.creditscoring;
+package com.digital.lending.creditscoring.service;
 
+import com.digital.lending.creditscoring.dto.CreditScoringModelRequestDto;
+import com.digital.lending.creditscoring.dto.CreditScoringModelResponseDto;
+import com.digital.lending.creditscoring.exception.RecordNotFoundException;
+import com.digital.lending.creditscoring.model.CreditScoringModelDefinition;
+import com.digital.lending.creditscoring.repository.CreditScoringModelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,19 +24,17 @@ public class CreditScoringModelManagementService {
 
     @Transactional
     public CreditScoringModelResponseDto createModel(String partnerId, String currency, CreditScoringModelRequestDto request) {
-        // 1. Enforce absolute uniqueness coordinates for multi-tenant configurations
         modelRepository.findActiveModel(partnerId, currency, request.getModelCode()).ifPresent(m -> {
             throw new IllegalArgumentException(String.format("An active scorecard matrix configuration model already exists for Tenant %s [%s] with code: %s",
                     partnerId, currency, request.getModelCode()));
         });
 
-        // 2. Build entity using the nested object payload graph directly
         CreditScoringModelDefinition entity = new CreditScoringModelDefinition();
         entity.setId(UUID.randomUUID().toString());
         entity.setModelCode(request.getModelCode());
         entity.setPartnerId(partnerId);
         entity.setCurrency(currency);
-        entity.setRulesPayload(request.getRulesPayload()); // Clean object reference mapping
+        entity.setRulesPayload(request.getRulesPayload());
         entity.setActive(true);
         entity.setCreatedAt(ZonedDateTime.now());
         entity.setUpdatedAt(ZonedDateTime.now());
@@ -45,7 +48,6 @@ public class CreditScoringModelManagementService {
         CreditScoringModelDefinition entity = modelRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("No scoring model matrix discovered matching primary reference key: " + id));
 
-        // Assign the updated rules object model graph
         entity.setRulesPayload(request.getRulesPayload());
         entity.setUpdatedAt(ZonedDateTime.now());
 
@@ -64,7 +66,6 @@ public class CreditScoringModelManagementService {
         CreditScoringModelDefinition entity = modelRepository.findById(id)
                 .orElseThrow(() -> new RecordNotFoundException("No scoring model matrix discovered matching primary reference key: " + id));
 
-        // Enforce soft delete integrity constraints to retain complete evaluation history data trace tracking parameters
         entity.setActive(false);
         entity.setUpdatedAt(ZonedDateTime.now());
         modelRepository.save(entity);
