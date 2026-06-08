@@ -1,13 +1,16 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5332/digital_lending_db
-    username: digital_lending_user
-    password: digital_lending_password
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: true
 
+server:
+  port: ${APP_PORT}
+
 jwt:
-  secret: myDevSuperSecretKeyForTokenGeneration
-  tokenValiditySpan: 1800000 # 30 minutes
+  secret: ${JWT_SECRET}
+  tokenValiditySpan: 1800000
