@@ -75,6 +75,12 @@
          <artifactId>spring-boot-starter-actuator</artifactId>
       </dependency>
 
+      <dependency>
+         <groupId>io.hypersistence</groupId>
+         <artifactId>hypersistence-utils-hibernate-60</artifactId>
+         <version>3.7.0</version> <!-- Ensure this version is compatible with your Hibernate/Spring Boot -->
+      </dependency>
+
       <!-- Database -->
 
       <dependency>
