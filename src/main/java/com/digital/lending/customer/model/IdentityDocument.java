@@ -1,5 +1,6 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.model;
 
+import com.digital.lending.customer.enums.DocumentType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;

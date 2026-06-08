@@ -1,5 +1,8 @@
 package com.digital.lending.customer;
 
+import com.digital.lending.customer.controller.CustomerController;
+import com.digital.lending.customer.dto.CreateCustomerRequest;
+import com.digital.lending.customer.service.CustomerService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

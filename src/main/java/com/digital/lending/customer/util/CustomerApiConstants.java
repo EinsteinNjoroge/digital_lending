@@ -1,4 +1,4 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.util;
 
 public final class CustomerApiConstants {
     private CustomerApiConstants() {}

@@ -1,5 +1,7 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.model;
 
+import com.digital.lending.customer.enums.CustomerType;
+import com.digital.lending.customer.enums.CustomerStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +13,7 @@ import java.time.Instant;
 @DiscriminatorColumn(name = "customer_type", discriminatorType = DiscriminatorType.STRING)
 @Getter
 @Setter
-abstract class Customer {
+public abstract class Customer {
 
     @Id
     private String id;

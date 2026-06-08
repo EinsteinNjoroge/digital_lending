@@ -1,4 +1,4 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-class GlobalExceptionHandler {
+public class GlobalExceptionHandler {
 
     /**
      * Handle business rules exceptions.

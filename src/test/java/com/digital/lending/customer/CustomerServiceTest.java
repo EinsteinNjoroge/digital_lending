@@ -1,5 +1,16 @@
 package com.digital.lending.customer;
 
+import com.digital.lending.customer.dto.CreateCustomerRequest;
+import com.digital.lending.customer.dto.CustomerDto;
+import com.digital.lending.customer.enums.CustomerStatus;
+import com.digital.lending.customer.enums.DocumentType;
+import com.digital.lending.customer.exception.CustomerDomainException;
+import com.digital.lending.customer.exception.DuplicateIdentityException;
+import com.digital.lending.customer.model.CorporateCustomer;
+import com.digital.lending.customer.model.IdentityDocument;
+import com.digital.lending.customer.model.IndividualCustomer;
+import com.digital.lending.customer.repository.CustomerRepository;
+import com.digital.lending.customer.service.impl.CustomerServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -189,7 +200,7 @@ class CustomerServiceTest {
                     "AK009922"
             );
 
-            assertThrows(CustomerDomainException.class, () -> {
+            assertThrows(DuplicateIdentityException.class, () -> { // Changed to DuplicateIdentityException
                 customerService.createCustomer(request);
                 repository.flush();
             });

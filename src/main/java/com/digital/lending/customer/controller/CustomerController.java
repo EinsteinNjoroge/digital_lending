@@ -1,4 +1,4 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,12 +11,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import static com.digital.lending.customer.CustomerApiConstants.*;
+import com.digital.lending.customer.service.CustomerService;
+import com.digital.lending.customer.exception.ApiErrorResponse;
+import com.digital.lending.customer.dto.CustomerDto;
+import com.digital.lending.customer.dto.CreateCustomerRequest;
+import com.digital.lending.customer.dto.UpdateCustomerRequest;
+
+import static com.digital.lending.customer.util.CustomerApiConstants.*;
 
 @RestController
 @RequestMapping(BASE_PATH)
 @Tag(name = TAG_NAME, description = TAG_DESCRIPTION)
-class CustomerController {
+public class CustomerController {
 
     private final CustomerService customerService;
 

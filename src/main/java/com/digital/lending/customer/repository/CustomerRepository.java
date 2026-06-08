@@ -1,10 +1,11 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.repository;
 
+import com.digital.lending.customer.model.Customer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-interface CustomerRepository extends JpaRepository<Customer, String> {
+public interface CustomerRepository extends JpaRepository<Customer, String> {
 
     boolean existsByEmail(String email);
 

@@ -1,5 +1,6 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.model;
 
+import com.digital.lending.customer.enums.CustomerType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,7 @@ import java.util.List;
 @DiscriminatorValue("JOINT")
 @Getter
 @Setter
-class JointCustomer extends Customer {
+public class JointCustomer extends Customer {
 
     public JointCustomer() {
         super.setCustomerType(CustomerType.JOINT);

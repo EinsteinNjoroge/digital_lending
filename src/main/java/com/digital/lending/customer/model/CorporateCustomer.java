@@ -1,5 +1,6 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.model;
 
+import com.digital.lending.customer.enums.CustomerType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +13,7 @@ import java.util.List;
 @DiscriminatorValue("CORPORATE")
 @Getter
 @Setter
-class CorporateCustomer extends Customer {
+public class CorporateCustomer extends Customer {
 
     public CorporateCustomer() {
         super.setCustomerType(CustomerType.CORPORATE);

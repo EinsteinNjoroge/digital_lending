@@ -1,6 +1,6 @@
 package com.digital.lending.config;
 
-import com.digital.lending.customer.CustomerApiConstants;
+import com.digital.lending.customer.util.CustomerApiConstants;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import org.springdoc.core.models.GroupedOpenApi;

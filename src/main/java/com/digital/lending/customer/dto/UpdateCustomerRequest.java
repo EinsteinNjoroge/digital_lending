@@ -1,4 +1,4 @@
-package com.digital.lending.customer;
+package com.digital.lending.customer.dto;
 
 public record UpdateCustomerRequest(
         String email,
