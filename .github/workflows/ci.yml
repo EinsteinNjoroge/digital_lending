@@ -25,4 +25,4 @@ jobs:
         run: chmod +x mvnw
 
       - name: Build and Test with Maven Wrapper
-        run: ./mvnw --batch-mode clean verify
+        run: ./mvnw --batch-mode clean verify -Dspring.profiles.active=test
