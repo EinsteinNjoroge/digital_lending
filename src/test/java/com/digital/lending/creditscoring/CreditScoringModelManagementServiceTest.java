@@ -40,14 +40,16 @@ class CreditScoringModelManagementServiceTest {
     @BeforeEach
     void setUp() {
         sampleRequest = new CreditScoringModelRequestDto();
-        sampleRequest.setModelCode("SCORECARD_NANO_KES");
+        sampleRequest.setPartnerId("SAF_KE_01");
+        sampleRequest.setCurrency("KES");
+        sampleRequest.setLoanProductId("LOAN_PRODUCT_NANO");
         sampleRequest.setRulesPayload(new ScoringRulesPayload());
 
         sampleEntity = new CreditScoringModelDefinition();
         sampleEntity.setId(modelId);
         sampleEntity.setPartnerId("SAF_KE_01");
         sampleEntity.setCurrency("KES");
-        sampleEntity.setModelCode("SCORECARD_NANO_KES");
+        sampleEntity.setLoanProductId("LOAN_PRODUCT_NANO");
         sampleEntity.setRulesPayload(new ScoringRulesPayload());
         sampleEntity.setActive(true);
     }
@@ -55,11 +57,11 @@ class CreditScoringModelManagementServiceTest {
     @Test
     @DisplayName("Should save a new model cleanly when no active configuration collision exists")
     void shouldCreateNewModelSuccessfully() {
-        when(modelRepository.findActiveModel("SAF_KE_01", "KES", "SCORECARD_NANO_KES"))
+        when(modelRepository.findActiveModel("SAF_KE_01", "KES", "LOAN_PRODUCT_NANO"))
                 .thenReturn(Optional.empty());
         when(modelRepository.save(any(CreditScoringModelDefinition.class))).thenReturn(sampleEntity);
 
-        CreditScoringModelResponseDto response = managementService.createModel("SAF_KE_01", "KES", sampleRequest);
+        CreditScoringModelResponseDto response = managementService.createModel(sampleRequest);
 
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(modelId);
@@ -70,10 +72,10 @@ class CreditScoringModelManagementServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when creating a duplicate model on an active tenant coordinate")
     void shouldThrowExceptionWhenActiveModelCollisionOccurs() {
-        when(modelRepository.findActiveModel("SAF_KE_01", "KES", "SCORECARD_NANO_KES"))
+        when(modelRepository.findActiveModel("SAF_KE_01", "KES", "LOAN_PRODUCT_NANO"))
                 .thenReturn(Optional.of(sampleEntity));
 
-        assertThatThrownBy(() -> managementService.createModel("SAF_KE_01", "KES", sampleRequest))
+        assertThatThrownBy(() -> managementService.createModel(sampleRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("already exists for Tenant SAF_KE_01");
 
