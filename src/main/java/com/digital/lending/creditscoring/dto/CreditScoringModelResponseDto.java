@@ -13,7 +13,7 @@ import com.digital.lending.creditscoring.model.ScoringRulesPayload;
 @Schema(name = "CreditScoringModelResponse", description = "The public view representation metadata of a mapped credit scoring matrix setup")
 public class CreditScoringModelResponseDto {
     private String id;
-    private String modelCode;
+    private String loanProductId;
     private String partnerId;
     private String currency;
     private boolean isActive;

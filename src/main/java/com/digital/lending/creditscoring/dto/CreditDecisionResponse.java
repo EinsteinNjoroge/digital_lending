@@ -12,6 +12,9 @@ import java.util.Map;
 @Schema(name = "CreditDecisionResponse", description = "The structural output evaluation response detailing the underwriting logic boundaries resolved for the applicant scenario context")
 public class CreditDecisionResponse {
 
+    @Schema(description = "The ID of the persisted decision log entry", example = "12345")
+    private String id;
+
     @Schema(description = "The absolute finalized operational assessment outcome state token", allowableValues = {"APPROVED", "DECLINED", "REFERRED"}, example = "APPROVED")
     private String decisionOutcome;
 
