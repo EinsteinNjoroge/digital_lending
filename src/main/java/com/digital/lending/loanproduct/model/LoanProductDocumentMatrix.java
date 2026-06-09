@@ -4,6 +4,7 @@ import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.Type;
+
 import java.util.Map;
 
 @Data

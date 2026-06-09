@@ -1,23 +1,19 @@
 package com.digital.lending.customer.service.impl;
 
-import com.digital.lending.customer.repository.CustomerRepository;
-import com.digital.lending.customer.service.CustomerService;
-import com.digital.lending.customer.dto.CustomerDto;
 import com.digital.lending.customer.dto.CreateCustomerRequest;
+import com.digital.lending.customer.dto.CustomerDto;
+import com.digital.lending.customer.dto.IdentityDto;
 import com.digital.lending.customer.dto.UpdateCustomerRequest;
+import com.digital.lending.customer.enums.CustomerStatus;
 import com.digital.lending.customer.exception.CustomerDomainException;
 import com.digital.lending.customer.exception.DuplicateIdentityException;
 import com.digital.lending.customer.exception.IdentityRequiredException;
-import com.digital.lending.customer.model.Customer;
-import com.digital.lending.customer.model.IndividualCustomer;
-import com.digital.lending.customer.model.CorporateCustomer;
-import com.digital.lending.customer.model.JointCustomer;
-import com.digital.lending.customer.model.IdentityDocument;
-import com.digital.lending.customer.enums.CustomerStatus;
-import com.digital.lending.customer.dto.IdentityDto;
-
+import com.digital.lending.customer.model.*;
+import com.digital.lending.customer.repository.CustomerRepository;
+import com.digital.lending.customer.service.CustomerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

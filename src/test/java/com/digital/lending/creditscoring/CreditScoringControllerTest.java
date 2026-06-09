@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,25 +48,27 @@ class CreditScoringControllerTest {
     @DisplayName("Should successfully return 200 OK along with valid model details on standard creation flows")
     void shouldReturn200AndSavedDtoOnValidPost() throws Exception {
         CreditScoringModelRequestDto request = new CreditScoringModelRequestDto();
-        request.setModelCode("SCORECARD_NANO_KES");
+        request.setPartnerId("SAF_KE_01");
+        request.setCurrency("KES");
+        request.setLoanProductId("LOAN_PRODUCT_NANO");
         request.setRulesPayload(new ScoringRulesPayload());
 
         CreditScoringModelResponseDto response = new CreditScoringModelResponseDto();
         response.setId(UUID.randomUUID().toString());
-        response.setModelCode("SCORECARD_NANO_KES");
+        response.setLoanProductId("LOAN_PRODUCT_NANO");
+        response.setPartnerId("SAF_KE_01");
+        response.setCurrency("KES");
         response.setActive(true);
 
-        when(managementService.createModel(eq("SAF_KE_01"), eq("KES"), any(CreditScoringModelRequestDto.class)))
+        when(managementService.createModel(any(CreditScoringModelRequestDto.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/api/v1/credit-scoring/models")
-                        .header("X-Partner-Id", "SAF_KE_01")
-                        .header("X-Currency", "KES")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(response.getId()))
-                .andExpect(jsonPath("$.modelCode").value("SCORECARD_NANO_KES"))
+                .andExpect(jsonPath("$.loanProductId").value("LOAN_PRODUCT_NANO"))
                 .andExpect(jsonPath("$.active").value(true));
     }
 
@@ -75,12 +76,12 @@ class CreditScoringControllerTest {
     @DisplayName("Should capture payload validation failure and reject execution with HTTP 400 when object structure is broken")
     void shouldReturn400BadRequestWhenRulesPayloadIsMissing() throws Exception {
         CreditScoringModelRequestDto brokenRequest = new CreditScoringModelRequestDto();
-        brokenRequest.setModelCode("SCORECARD_NANO_KES");
+        brokenRequest.setPartnerId("SAF_KE_01");
+        brokenRequest.setCurrency("KES");
+        brokenRequest.setLoanProductId("LOAN_PRODUCT_NANO");
         brokenRequest.setRulesPayload(null);
 
         mockMvc.perform(post("/api/v1/credit-scoring/models")
-                        .header("X-Partner-Id", "SAF_KE_01")
-                        .header("X-Currency", "KES")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(brokenRequest)))
                 .andExpect(status().isBadRequest())
@@ -92,15 +93,15 @@ class CreditScoringControllerTest {
     @DisplayName("Should cleanly resolve duplicate index conditions into HTTP 409 Conflict via GlobalExceptionHandler intercept patterns")
     void shouldBubbleUpConflictErrorOnIllegalArgumentException() throws Exception {
         CreditScoringModelRequestDto request = new CreditScoringModelRequestDto();
-        request.setModelCode("SCORECARD_NANO_KES");
+        request.setPartnerId("SAF_KE_01");
+        request.setCurrency("KES");
+        request.setLoanProductId("LOAN_PRODUCT_NANO");
         request.setRulesPayload(new ScoringRulesPayload());
 
-        when(managementService.createModel(eq("SAF_KE_01"), eq("KES"), any(CreditScoringModelRequestDto.class)))
+        when(managementService.createModel(any(CreditScoringModelRequestDto.class)))
                 .thenThrow(new IllegalArgumentException("An active scorecard matrix configuration model already exists for Tenant SAF_KE_01 [KES]"));
 
         mockMvc.perform(post("/api/v1/credit-scoring/models")
-                        .header("X-Partner-Id", "SAF_KE_01")
-                        .header("X-Currency", "KES")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -113,7 +114,7 @@ class CreditScoringControllerTest {
     void shouldFetchAndFilterActiveModelsSuccessfully() throws Exception {
         CreditScoringModelResponseDto response = new CreditScoringModelResponseDto();
         response.setId(UUID.randomUUID().toString());
-        response.setModelCode("SCORECARD_NANO_KES");
+        response.setLoanProductId("LOAN_PRODUCT_NANO");
         response.setActive(true);
 
         when(managementService.getAllModels("SAF_KE_01", true))
@@ -124,6 +125,6 @@ class CreditScoringControllerTest {
                         .param("isActive", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].modelCode").value("SCORECARD_NANO_KES"));
+                .andExpect(jsonPath("$[0].loanProductId").value("LOAN_PRODUCT_NANO"));
     }
 }

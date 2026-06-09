@@ -23,17 +23,17 @@ public class CreditScoringModelManagementService {
     private final CreditScoringModelRepository modelRepository;
 
     @Transactional
-    public CreditScoringModelResponseDto createModel(String partnerId, String currency, CreditScoringModelRequestDto request) {
-        modelRepository.findActiveModel(partnerId, currency, request.getModelCode()).ifPresent(m -> {
-            throw new IllegalArgumentException(String.format("An active scorecard matrix configuration model already exists for Tenant %s [%s] with code: %s",
-                    partnerId, currency, request.getModelCode()));
+    public CreditScoringModelResponseDto createModel(CreditScoringModelRequestDto request) {
+        modelRepository.findActiveModel(request.getPartnerId(), request.getCurrency(), request.getLoanProductId()).ifPresent(m -> {
+            throw new IllegalArgumentException(String.format("An active scorecard matrix configuration model already exists for Tenant %s [%s] with loan product: %s",
+                    request.getPartnerId(), request.getCurrency(), request.getLoanProductId()));
         });
 
         CreditScoringModelDefinition entity = new CreditScoringModelDefinition();
         entity.setId(UUID.randomUUID().toString());
-        entity.setModelCode(request.getModelCode());
-        entity.setPartnerId(partnerId);
-        entity.setCurrency(currency);
+        entity.setLoanProductId(request.getLoanProductId());
+        entity.setPartnerId(request.getPartnerId());
+        entity.setCurrency(request.getCurrency());
         entity.setRulesPayload(request.getRulesPayload());
         entity.setActive(true);
         entity.setCreatedAt(ZonedDateTime.now());
@@ -74,7 +74,7 @@ public class CreditScoringModelManagementService {
     private CreditScoringModelResponseDto mapToResponseDto(CreditScoringModelDefinition entity) {
         return new CreditScoringModelResponseDto(
                 entity.getId(),
-                entity.getModelCode(),
+                entity.getLoanProductId(),
                 entity.getPartnerId(),
                 entity.getCurrency(),
                 entity.isActive(),

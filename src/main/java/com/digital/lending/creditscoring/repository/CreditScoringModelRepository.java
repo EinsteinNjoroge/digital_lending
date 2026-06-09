@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -13,12 +14,12 @@ public interface CreditScoringModelRepository extends JpaRepository<CreditScorin
     @Query("SELECT m FROM CreditScoringModelDefinition m " +
             "WHERE m.partnerId = :partnerId " +
             "AND m.currency = :currency " +
-            "AND m.modelCode = :modelCode " +
+            "AND m.loanProductId = :loanProductId " +
             "AND m.isActive = true")
     Optional<CreditScoringModelDefinition> findActiveModel(
             @Param("partnerId") String partnerId,
             @Param("currency") String currency,
-            @Param("modelCode") String modelCode
+            @Param("loanProductId") String loanProductId
     );
 
     List<CreditScoringModelDefinition> findByPartnerIdAndIsActive(String partnerId, boolean isActive);

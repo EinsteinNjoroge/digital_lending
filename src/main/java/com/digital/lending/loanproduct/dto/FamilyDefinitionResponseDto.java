@@ -2,6 +2,7 @@ package com.digital.lending.loanproduct.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
 import java.time.ZonedDateTime;
 
 @Data
