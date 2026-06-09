@@ -1,4 +1,4 @@
-package com.digital.lending.loanproduct;
+package com.digital.lending.loanproduct.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;

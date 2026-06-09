@@ -1,5 +1,6 @@
-package com.digital.lending.loanproduct;
+package com.digital.lending.loanproduct.repository;
 
+import com.digital.lending.loanproduct.model.LoanProductFamilyDefinition;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

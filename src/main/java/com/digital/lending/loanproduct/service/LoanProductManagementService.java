@@ -1,5 +1,13 @@
-package com.digital.lending.loanproduct;
+package com.digital.lending.loanproduct.service;
 
+import com.digital.lending.loanproduct.dto.ProductConfigurationRequestDto;
+import com.digital.lending.loanproduct.dto.ProductConfigurationResponseDto;
+import com.digital.lending.loanproduct.exception.BusinessRuleViolationException;
+import com.digital.lending.loanproduct.exception.ResourceNotFoundException;
+import com.digital.lending.loanproduct.model.LoanProductConfiguration;
+import com.digital.lending.loanproduct.model.LoanProductConfigurationAuditLog;
+import com.digital.lending.loanproduct.repository.LoanProductAuditLogRepository;
+import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

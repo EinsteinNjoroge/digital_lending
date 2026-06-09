@@ -1,5 +1,9 @@
-package com.digital.lending.loanproduct;
+package com.digital.lending.loanproduct.controller;
 
+import com.digital.lending.loanproduct.dto.ProductConfigurationRequestDto;
+import com.digital.lending.loanproduct.dto.ProductConfigurationResponseDto;
+import com.digital.lending.loanproduct.exception.ApiErrorResponse;
+import com.digital.lending.loanproduct.service.LoanProductManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;

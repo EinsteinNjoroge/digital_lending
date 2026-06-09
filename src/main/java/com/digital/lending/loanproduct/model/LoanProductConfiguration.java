@@ -1,4 +1,4 @@
-package com.digital.lending.loanproduct;
+package com.digital.lending.loanproduct.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

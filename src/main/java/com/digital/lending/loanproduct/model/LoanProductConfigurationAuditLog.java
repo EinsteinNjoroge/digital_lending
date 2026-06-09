@@ -1,4 +1,4 @@
-package com.digital.lending.loanproduct;
+package com.digital.lending.loanproduct.model;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
