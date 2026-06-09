@@ -141,6 +141,6 @@ public class CreditScoringOrchestrationEngine {
             auditTrace.put("PERSISTENCE_FAULT_WARNING", "Log failed execution payload write boundary: " + ex.getMessage());
         }
 
-        return new CreditDecisionResponse(decisionOutcome, finalScore, computedLimit, auditTrace);
+        return new CreditDecisionResponse(transactionId, decisionOutcome, finalScore, computedLimit, auditTrace);
     }
 }

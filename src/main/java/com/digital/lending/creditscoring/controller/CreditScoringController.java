@@ -61,12 +61,13 @@ public class CreditScoringController {
     }
 
     @PostMapping("/models")
-    @Operation(summary = "Provision a new multi-tenant credit scorecard rule matrix model definition record")
+    @Operation(
+            summary = "Provision a new multi-tenant credit scorecard rule matrix model definition record",
+            description = "Creates a credit scoring model."
+    )
     public ResponseEntity<CreditScoringModelResponseDto> createScoringModel(
-            @RequestHeader("X-Partner-Id") String partnerId,
-            @RequestHeader("X-Currency") String currency,
             @Valid @RequestBody CreditScoringModelRequestDto request) {
-        return ResponseEntity.ok(managementService.createModel(partnerId, currency, request));
+        return ResponseEntity.ok(managementService.createModel(request));
     }
 
     @PutMapping("/models/{id}")
