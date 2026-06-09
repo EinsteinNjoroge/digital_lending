@@ -1,11 +1,12 @@
 package com.digital.lending.creditscoring.dto;
 
+import com.digital.lending.creditscoring.model.ScoringRulesPayload;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.ZonedDateTime;
-import com.digital.lending.creditscoring.model.ScoringRulesPayload;
 
 @Data
 @NoArgsConstructor

@@ -1,10 +1,11 @@
 package com.digital.lending.creditscoring.model;
 
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Data;
 import org.hibernate.annotations.Type;
-import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
+
 import java.time.ZonedDateTime;
 import java.util.Map;
 

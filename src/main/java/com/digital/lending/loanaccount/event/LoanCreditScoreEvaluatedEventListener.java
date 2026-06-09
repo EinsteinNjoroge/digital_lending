@@ -1,26 +1,11 @@
 package com.digital.lending.loanaccount.event;
 
+import com.digital.lending.loanaccount.service.LoanAccountManagementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-
-import com.digital.lending.loanaccount.dto.LoanAccountOpeningRequestDto;
-import com.digital.lending.loanaccount.dto.LoanAccountResponseDto;
-import com.digital.lending.loanaccount.dto.StatusModificationRequestDto;
-import com.digital.lending.loanaccount.enums.IssuanceStatus;
-import com.digital.lending.loanaccount.enums.PerformanceStatus;
-import com.digital.lending.loanaccount.event.DraftLoanEvent;
-import com.digital.lending.loanaccount.event.LoanApprovedStatusEvent;
-import com.digital.lending.loanaccount.event.LoanCreditScoreEvaluatedEvent;
-import com.digital.lending.loanaccount.exception.BusinessRuleViolationException;
-import com.digital.lending.loanaccount.exception.ResourceNotFoundException;
-import com.digital.lending.loanaccount.model.LoanAccount;
-import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
-import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
-import com.digital.lending.loanaccount.repository.LoanAccountRepository;
-import com.digital.lending.loanaccount.service.LoanAccountManagementService;
 
 @Slf4j
 @Component

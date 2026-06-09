@@ -1,7 +1,7 @@
 package com.digital.lending.customer.service;
 
-import com.digital.lending.customer.dto.CustomerDto;
 import com.digital.lending.customer.dto.CreateCustomerRequest;
+import com.digital.lending.customer.dto.CustomerDto;
 import com.digital.lending.customer.dto.UpdateCustomerRequest;
 
 import java.util.List;

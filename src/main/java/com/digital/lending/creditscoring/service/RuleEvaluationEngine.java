@@ -1,10 +1,10 @@
 package com.digital.lending.creditscoring.service;
 
-import com.digital.lending.creditscoring.enums.RuleOperator;
 import com.digital.lending.creditscoring.model.FeatureWeightConfig;
 import com.digital.lending.creditscoring.model.KnockOutRule;
 import com.digital.lending.creditscoring.model.ScoreRange;
 import org.springframework.stereotype.Service;
+
 import java.util.Map;
 
 @Service

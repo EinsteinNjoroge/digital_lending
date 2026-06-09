@@ -1,24 +1,12 @@
 package com.digital.lending.loanaccount.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-import java.math.BigDecimal;
-import java.time.ZonedDateTime;
-import com.digital.lending.loanaccount.dto.LoanAccountOpeningRequestDto;
-import com.digital.lending.loanaccount.dto.LoanAccountResponseDto;
-import com.digital.lending.loanaccount.dto.StatusModificationRequestDto;
 import com.digital.lending.loanaccount.enums.IssuanceStatus;
 import com.digital.lending.loanaccount.enums.PerformanceStatus;
-import com.digital.lending.loanaccount.event.DraftLoanEvent;
-import com.digital.lending.loanaccount.event.LoanApprovedStatusEvent;
-import com.digital.lending.loanaccount.event.LoanCreditScoreEvaluatedEvent;
-import com.digital.lending.loanaccount.exception.BusinessRuleViolationException;
-import com.digital.lending.loanaccount.exception.ResourceNotFoundException;
-import com.digital.lending.loanaccount.model.LoanAccount;
-import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
-import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
-import com.digital.lending.loanaccount.repository.LoanAccountRepository;
-import com.digital.lending.loanaccount.service.LoanAccountManagementService;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 
 
 @Data

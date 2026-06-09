@@ -3,6 +3,7 @@ package com.digital.lending.loanproduct.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
+
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;

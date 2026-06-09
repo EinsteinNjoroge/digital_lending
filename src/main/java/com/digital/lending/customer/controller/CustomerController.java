@@ -1,5 +1,10 @@
 package com.digital.lending.customer.controller;
 
+import com.digital.lending.customer.dto.CreateCustomerRequest;
+import com.digital.lending.customer.dto.CustomerDto;
+import com.digital.lending.customer.dto.UpdateCustomerRequest;
+import com.digital.lending.customer.exception.ApiErrorResponse;
+import com.digital.lending.customer.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,11 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.digital.lending.customer.service.CustomerService;
-import com.digital.lending.customer.exception.ApiErrorResponse;
-import com.digital.lending.customer.dto.CustomerDto;
-import com.digital.lending.customer.dto.CreateCustomerRequest;
-import com.digital.lending.customer.dto.UpdateCustomerRequest;
 
 import static com.digital.lending.customer.util.CustomerApiConstants.*;
 

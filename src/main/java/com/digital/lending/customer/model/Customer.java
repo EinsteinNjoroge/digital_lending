@@ -1,10 +1,11 @@
 package com.digital.lending.customer.model;
 
-import com.digital.lending.customer.enums.CustomerType;
 import com.digital.lending.customer.enums.CustomerStatus;
+import com.digital.lending.customer.enums.CustomerType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.Instant;
 
 @Entity
