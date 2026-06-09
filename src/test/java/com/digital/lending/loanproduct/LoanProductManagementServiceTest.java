@@ -7,13 +7,13 @@ import com.digital.lending.loanproduct.model.LoanProductConfiguration;
 import com.digital.lending.loanproduct.repository.LoanProductAuditLogRepository;
 import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import com.digital.lending.loanproduct.service.LoanProductManagementService;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.Map;
