@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+@RestControllerAdvice(value = "com.digital.lending.customer", name = "customerExceptionHandler")
 public class GlobalExceptionHandler {
 
     /**
