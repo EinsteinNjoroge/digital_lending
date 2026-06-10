@@ -10,7 +10,6 @@ COPY src ./src
 
 RUN mvn -B -DskipTests clean test-compile package
 
-
 FROM eclipse-temurin:21-jdk-alpine
 
 WORKDIR /app
