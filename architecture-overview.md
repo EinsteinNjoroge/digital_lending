@@ -1,8 +1,7 @@
 # Architecture Overview
+I have built this project as a **modular monolith**: one Spring Boot application, split into clear business modules. 
 
-I have built this project as a **modular monolith**: one Spring Boot application, split into clear business modules.
-
-That let me keep the project easy to run and easy to review, while still giving each part of the lending journey a clear home.
+Ideally a spring-boot microservice setup would be best, however, I wanted to showcase the clear separation of business domains without over-heading of setting up multiple micro-services.
 
 ## Main modules
 
@@ -11,10 +10,10 @@ That let me keep the project easy to run and easy to review, while still giving 
 - **Credit Scoring** - baseline credit profile and configurable scorecards
 - **Loan Account** - loan application flow, account state, servicing, and audit logs
 - **Payment** - disbursal and repayment transaction handling
-- **Notification** - template-based customer communication
+- **Notification** - template-based customer communication (SMS, Email, Push Notification)
 - **Events** - internal domain events that connect the modules
 
-## UML-style domain schema
+## UML-based domain schema
 
 I have kept the core entities separated by domain so the model is easier to extend without mixing product setup, underwriting, servicing, payments, and communication concerns.
 
@@ -219,13 +218,13 @@ flowchart TD
 
 ## Why I structured it this way
 
-A lending system usually touches several areas at once: customer data, product rules, underwriting, payments, and communication.
+A lending system usually manages several domains at once: customer data, product rules, underwriting, payments, and communication.
 
-I have separated those concerns into modules and connected them with events. That gives me a few practical benefits:
+I have separated those concerns into modules and connected them with events for practicality:
 - each module has a clear job
 - the main loan flow is easier to follow
 - I can add some behavior by subscribing to an event instead of rewriting an existing flow
-- the whole platform is still simple to run locally because it is one application
+- the whole project is simple to run locally because it is one application
 
 ## Loan product configuration
 
@@ -240,7 +239,7 @@ Each product can store:
 - active/inactive state
 - audit history for configuration changes
 
-### About the handler tokens
+#### About the handler tokens
 
 Family definitions include fields like:
 - `disbursementHandlerToken`
@@ -248,7 +247,7 @@ Family definitions include fields like:
 - `repaymentHandlerToken`
 - `delinquencyHandlerToken`
 
-In this submission, I would describe those as **future-facing metadata**.
+This is **future-facing metadata** for functionality that is not implemented in this submission.
 
 I use them to show where product-family specific logic would plug in later, but I have not wired them to executable strategy implementations yet. In a larger production system, I would use them to route to different servicing, accrual, repayment, or delinquency handlers.
 
@@ -265,15 +264,15 @@ The current flow is:
   - the requested principal is within the approved limit
   - the new request does not push the customer above their **current aggregate outstanding exposure**
 
-That last check is the main improvement I added here: if a customer already has open exposure, I now stop a new approval when the combined amount would exceed the approved limit.
+If a customer already has open exposure, I stop a new approval when the combined amount would exceed the approved limit.
 
 ### What I would add in production
 
-For a production lending platform, I would expect to go further with:
+For a production lending platform, I would go further with:
 - **aggregate portfolio exposure** by customer and by product family
 - **historical repayment behaviour** such as on-time repayment ratio, restructures, delinquencies, and defaults
 - **changing limits over time** based on account age, repayment history, and review cycles
-- **credit line utilisation across products** rather than checking each new request mostly on its own
+- **credit line utilization across products** rather than checking each new request mostly on its own
 - stronger fraud, affordability, and policy controls
 
 I did not build all of that here because it would add a lot of extra complexity for the assignment without improving the clarity of the core loan flow.
@@ -282,9 +281,7 @@ I did not build all of that here because it would add a lot of extra complexity 
 
 I have added a basic servicing flow.
 
-### How it works
-
-A scheduled job runs on a configurable cron expression and calls this internal endpoint:
+A scheduled job runs on a configurable cron expression and calls this endpoint:
 
 - `POST /api/v1/internal/loan-accounts/servicing/run`
 
@@ -297,19 +294,14 @@ The loan-account module then:
 
 The notification module listens for that overdue event and sends a missed-payment message using the seeded notification template.
 
-### Why I kept it simple
+#### What I would add in production
 
-This servicing model is intentionally lightweight for the assignment.
-
-It does **not** yet include:
 - installment schedules
 - interest accrual posting
 - promise-to-pay tracking
 - collections workflows
 - retry/outbox delivery guarantees
 - full amortisation logic
-
-In production, I would expect a richer servicing engine behind this area.
 
 ## Notifications
 
@@ -319,14 +311,11 @@ That means the core modules do not need to know how an email or SMS is sent. The
 
 Current supported behavior:
 - email delivery through Spring Mail
-- SMS and push as stubbed/logged implementations
+- SMS and push as **stubbed/logged implementations**
 - audit logs for each notification attempt
 
-### Current limitation
+#### What I would add in production
 
-The notification module is intentionally simple.
-
-It does not yet include:
 - retries and dead-letter handling
 - provider failover
 - outbox/event delivery guarantees
@@ -335,18 +324,21 @@ It does not yet include:
 
 For this assignment, I wanted it to clearly show the extension point without turning the project into a full communications platform.
 
+## Authentication note
+
+The intended production direction is **JWT-based authentication**.
+
+JWT dependencies are present, but auth is **not implemented in this submission** because it is out of scope for this case study. In the current dev setup, requests are open so the functional loan flows are easy to review.
+
+
 ## Spring Modulith usage
 
-I use a module-oriented package structure and I also added a **Spring Modulith verification test**.
-
-That means the module boundaries are not only a naming choice; there is now an automated test checking the declared relationships between modules.
+I use a module-oriented package structure and I also added a **Spring Modulith verification test**. There is automated test checking the declared relationships between modules.
 
 ## Summary
 
-I have aimed for a practical first version of a lending platform backend:
+I aimed for a practical first version of a lending platform backend:
 - easy to run locally
 - organized around the main lending domain areas
 - event-driven where it helps the most
 - intentionally simplified where a full production implementation would be much larger
-
-The main trade-off is deliberate: I would rather keep the core flow clear and maintainable than partially build a lot of heavy production concerns in a way that becomes noisy or confusing.
