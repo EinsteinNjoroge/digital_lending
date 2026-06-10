@@ -7,6 +7,21 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: true
+  app:
+    notification:
+      mail:
+        from-address: no-reply@digital-lending.com
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME:your-system-email@gmail.com}
+    password: ${EMAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: ${APP_PORT}
