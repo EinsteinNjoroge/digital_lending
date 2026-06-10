@@ -12,11 +12,12 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.Optional;
 
-
 @Repository
 public interface LoanAccountRepository extends JpaRepository<LoanAccount, String> {
 
     Optional<LoanAccount> findByIdempotencyKey(String idempotencyKey);
+
+    Optional<LoanAccount> findByAccountNumber(String accountNumber);
 
     boolean existsByProfileIdAndLoanProductIdAndPerformanceStatusIn(
             String profileId,

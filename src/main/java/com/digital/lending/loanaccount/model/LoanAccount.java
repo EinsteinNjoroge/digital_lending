@@ -2,12 +2,16 @@ package com.digital.lending.loanaccount.model;
 
 import com.digital.lending.loanaccount.enums.IssuanceStatus;
 import com.digital.lending.loanaccount.enums.PerformanceStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-
 
 @Data
 @Entity
@@ -33,11 +37,14 @@ public class LoanAccount {
     @Column(name = "initial_principal", nullable = false, precision = 18, scale = 4)
     private BigDecimal initialPrincipal;
 
+    @Column(name = "outstanding_principal", nullable = false, precision = 18, scale = 4)
+    private BigDecimal outstandingPrincipal;
+
     @Column(name = "credit_limit_at_capture")
     private Integer creditLimitAtCapture;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "issuance_status", nullable = false, length = 20)
+    @Column(name = "issuance_status", nullable = false, length = 32)
     private IssuanceStatus issuanceStatus;
 
     @Enumerated(EnumType.STRING)
@@ -49,6 +56,9 @@ public class LoanAccount {
 
     @Column(name = "taken_at")
     private ZonedDateTime takenAt;
+
+    @Column(name = "settled_at")
+    private ZonedDateTime settledAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();

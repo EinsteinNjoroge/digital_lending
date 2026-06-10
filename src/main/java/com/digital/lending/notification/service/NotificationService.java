@@ -10,6 +10,9 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,14 @@ import java.util.UUID;
 @Slf4j
 public class NotificationService {
 
+    private static final String TEMPLATE_STATUS_ACTIVE = "TRUE";
+    private static final String CHANNEL_EMAIL = "EMAIL";
+    private static final String CHANNEL_SMS = "SMS";
+    private static final String CHANNEL_PUSH = "PUSH";
+    private static final String AUDIT_STATUS_SENT = "SENT";
+    private static final String AUDIT_STATUS_FAILED = "FAILED";
+    private static final String UTF_8 = "UTF-8";
+
     private final NotificationTemplateRepository templateRepository;
     private final NotificationAuditLogRepository auditLogRepository;
     private final JavaMailSender mailSender;
@@ -36,7 +47,7 @@ public class NotificationService {
         NotificationTemplate template = templateRepository.findById(request.getTemplateId())
                 .orElseThrow(() -> new IllegalArgumentException("Target template framework variant not mapped: " + request.getTemplateId()));
 
-        if (!"TRUE".equalsIgnoreCase(template.getIsActive())) {
+        if (!TEMPLATE_STATUS_ACTIVE.equalsIgnoreCase(template.getIsActive())) {
             throw new IllegalStateException("Attempted routing through an inactive template frame: " + template.getId());
         }
 
@@ -59,15 +70,15 @@ public class NotificationService {
         try {
             // Channel Routing Mechanics Matrix switch
             switch (template.getChannelId().toUpperCase()) {
-                case "EMAIL" -> dispatchEmailServiceChannel(request.getDestination(), finalTitle, finalBody);
-                case "SMS" -> dispatchSmsDummyChannel(request.getDestination(), finalBody);
-                case "PUSH" -> dispatchPushDummyChannel(request.getDestination(), finalTitle, finalBody);
+                case CHANNEL_EMAIL -> dispatchEmailServiceChannel(request.getDestination(), finalTitle, finalBody);
+                case CHANNEL_SMS -> dispatchSmsDummyChannel(request.getDestination(), finalBody);
+                case CHANNEL_PUSH -> dispatchPushDummyChannel(request.getDestination(), finalTitle, finalBody);
                 default -> throw new UnsupportedOperationException("Channel parsing route unknown: " + template.getChannelId());
             }
-            audit.setStatus("SENT");
+            audit.setStatus(AUDIT_STATUS_SENT);
         } catch (Exception ex) {
             log.error("Failed notification dispatch execution run: ", ex);
-            audit.setStatus("FAILED");
+            audit.setStatus(AUDIT_STATUS_FAILED);
             audit.setErrorMessage(ex.getMessage());
         } finally {
             auditLogRepository.save(audit);
@@ -75,7 +86,10 @@ public class NotificationService {
     }
 
     private String interpolateContent(String rawTemplate, Map<String, String> variables) {
-        if (rawTemplate == null) return "";
+        if (rawTemplate == null) {
+            return "";
+        }
+
         String result = rawTemplate;
         for (Map.Entry<String, String> entry : variables.entrySet()) {
             String targetPlaceholder = "{{" + entry.getKey() + "}}";
@@ -90,7 +104,7 @@ public class NotificationService {
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         // UTF-8 flag constraint guarantees that currency markers (e.g. KES, €, $) resolve correctly
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, UTF_8);
 
         helper.setFrom(fromAddress);
         helper.setTo(recipient);
@@ -104,26 +118,34 @@ public class NotificationService {
     }
 
     private void dispatchSmsDummyChannel(String mobileNumber, String textMessage) {
-        System.out.println("[CELLULAR GATEWAY SIMULATION] Outbound SMS Dispatch Success!");
-        System.out.println("-> Target MSISDN Destination: " + mobileNumber);
-        System.out.println("-> Message String Body: " + textMessage);
+        log.info("[CELLULAR GATEWAY SIMULATION] Outbound SMS Dispatch Success! target={} body={}", mobileNumber, textMessage);
     }
 
     private void dispatchPushDummyChannel(String pushToken, String alertHeader, String alertBody) {
-        System.out.println("[MOBILE PUSH GATEWAY SIMULATION] Outbound APNS/FCM Payload Broadcast Success!");
-        System.out.println("-> Target Registration Token: " + pushToken);
-        System.out.println("-> Alert Payload Header: [" + alertHeader + "] Body: [" + alertBody + "]");
+        log.info(
+                "[MOBILE PUSH GATEWAY SIMULATION] Outbound APNS/FCM Payload Broadcast Success! token={} header={} body={}",
+                pushToken,
+                alertHeader,
+                alertBody
+        );
     }
 
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<NotificationAuditResponseDto> getFilteredNotificationLogs(
-            String channel, String recipient, String status,
-            LocalDateTime fromDate, LocalDateTime toDate, org.springframework.data.domain.Pageable pageable) {
+    public Page<NotificationAuditResponseDto> getFilteredNotificationLogs(
+            String channel,
+            String recipient,
+            String status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Pageable pageable) {
 
-        org.springframework.data.jpa.domain.Specification<NotificationAuditLog> spec =
-                NotificationSpecification.createSpecification(
-                        channel, recipient, status, fromDate, toDate
-                );
+        Specification<NotificationAuditLog> spec = NotificationSpecification.createSpecification(
+                channel,
+                recipient,
+                status,
+                fromDate,
+                toDate
+        );
 
         return auditLogRepository.findAll(spec, pageable)
                 .map(logItem -> new NotificationAuditResponseDto(

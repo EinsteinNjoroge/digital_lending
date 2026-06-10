@@ -1,9 +1,13 @@
 package com.digital.lending.creditscoring.model;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
-import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Data;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.GenerationType;
+import lombok.*;
 import org.hibernate.annotations.Type;
 
 import java.time.ZonedDateTime;
@@ -13,6 +17,8 @@ import java.util.Map;
 @Table(name = "credit_scoring_decision_log")
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreditScoringDecisionLog {
 
     @Id
@@ -22,8 +28,8 @@ public class CreditScoringDecisionLog {
     @Column(name = "transaction_id", nullable = false, length = 64)
     private String transactionId;
 
-    @Column(name = "customer_id", nullable = false, length = 64)
-    private String customerId;
+    @Column(name = "profile_id", nullable = false, length = 64)
+    private String profileId;
 
     @Column(name = "partner_id", nullable = false, length = 64)
     private String partnerId;

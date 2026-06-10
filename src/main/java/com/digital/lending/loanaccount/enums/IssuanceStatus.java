@@ -1,7 +1,10 @@
 package com.digital.lending.loanaccount.enums;
 
 public enum IssuanceStatus {
-    DRAFT,
-    APPROVED_ISSUED,
-    DENIED
+    PENDING_SCORE_VALIDATION,
+    APPROVED,
+    ACTIVE,
+    DENIED,
+    SETTLED,
+    CLOSED
 }

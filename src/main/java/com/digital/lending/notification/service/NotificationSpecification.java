@@ -1,8 +1,9 @@
 package com.digital.lending.notification.service;
 
 import com.digital.lending.notification.model.NotificationAuditLog;
-import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

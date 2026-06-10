@@ -62,6 +62,11 @@ INSERT INTO notification_templates (id, channel_id, title_template, body_templat
     '2026-06-10 00:00:00',
 '2026-06-10 00:00:00'),
 
+    ('LOAN_SETTLED_EMAIL', 'EMAIL', 'Loan Account Fully Settled',
+    '<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333333; line-height: 1.6;"><div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"><h2 style="color: #2e7d32;">Congratulations, {{recipientName}}!</h2><p>Your loan account has now been fully settled.</p><div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #2e7d32; margin: 20px 0;"><strong>Account Reference:</strong> {{accountReference}}<br><strong>Settlement Date:</strong> {{settlementDate}}</div><p>Thank you for honoring your repayment obligations.</p></div></body></html>',
+    '2026-06-10 00:00:00',
+'2026-06-10 00:00:00'),
+
     ('MISSED_PAYMENT_EMAIL', 'EMAIL', 'URGENT: Overdue Repayment Notice',
     '<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333333; line-height: 1.6;"><div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;"><h2 style="color: #c62828;">Repayment Notice Overdue</h2><p>Hello {{recipientName}},</p><p>Our system ledgers indicate that you have missed your scheduled repayment obligation window for loan profile reference <strong>{{accountReference}}</strong>.</p><div style="background-color: #ffebee; color: #c62828; padding: 15px; border-left: 4px solid #c62828; margin: 20px 0;"><strong>Overdue Balance Due:</strong> {{currency}} {{amount}}<br><strong>Original Due Date:</strong> {{dueDate}}</div><p>Please log in immediately to top up your mobile wallet or process a manual pay-in via M-Pesa to prevent penalty accumulation or credit rating degradation flags.</p></div></body></html>',
     '2026-06-10 00:00:00',

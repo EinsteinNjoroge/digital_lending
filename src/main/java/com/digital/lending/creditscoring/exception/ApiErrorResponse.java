@@ -12,7 +12,7 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @Schema(name = "ApiErrorResponse", description = "Standardized error wrapper returned when an execution layer constraint is violated")
 public class ApiErrorResponse {
-    private String code;
+    private String errorCode;
     private String message;
     private String details;
     private ZonedDateTime timestamp;

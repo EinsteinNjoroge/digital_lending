@@ -30,6 +30,8 @@
 
       <lombok.version>1.18.38</lombok.version>
       <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
+      <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
+      <checkstyle.version>10.21.4</checkstyle.version>
    </properties>
 
    <dependencyManagement>
@@ -250,6 +252,35 @@
                   </path>
                </annotationProcessorPaths>
             </configuration>
+         </plugin>
+
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <version>${maven.checkstyle.plugin.version}</version>
+            <dependencies>
+               <dependency>
+                  <groupId>com.puppycrawl.tools</groupId>
+                  <artifactId>checkstyle</artifactId>
+                  <version>${checkstyle.version}</version>
+               </dependency>
+            </dependencies>
+            <configuration>
+               <configLocation>src/checkstyle/checkstyle.xml</configLocation>
+               <includeTestSourceDirectory>false</includeTestSourceDirectory>
+               <consoleOutput>true</consoleOutput>
+               <failsOnError>true</failsOnError>
+               <linkXRef>false</linkXRef>
+            </configuration>
+            <executions>
+               <execution>
+                  <id>checkstyle-validation</id>
+                  <phase>validate</phase>
+                  <goals>
+                     <goal>check</goal>
+                  </goals>
+               </execution>
+            </executions>
          </plugin>
 
       </plugins>

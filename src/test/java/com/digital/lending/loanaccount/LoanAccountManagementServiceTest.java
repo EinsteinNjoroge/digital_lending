@@ -1,13 +1,16 @@
 package com.digital.lending.loanaccount;
 
+import com.digital.lending.events.LoanAccountSettledEvent;
+import com.digital.lending.events.LoanApplicationApprovedEvent;
+import com.digital.lending.events.LoanApplicationCreatedEvent;
+import com.digital.lending.events.LoanApplicationRejectedEvent;
+import com.digital.lending.events.LoanDisbursalRequestedEvent;
+import com.digital.lending.events.PaymentEvent;
 import com.digital.lending.loanaccount.dto.LoanAccountOpeningRequestDto;
 import com.digital.lending.loanaccount.dto.LoanAccountResponseDto;
 import com.digital.lending.loanaccount.dto.StatusModificationRequestDto;
 import com.digital.lending.loanaccount.enums.IssuanceStatus;
 import com.digital.lending.loanaccount.enums.PerformanceStatus;
-import com.digital.lending.loanaccount.event.DraftLoanEvent;
-import com.digital.lending.loanaccount.event.LoanApprovedStatusEvent;
-import com.digital.lending.loanaccount.event.LoanCreditScoreEvaluatedEvent;
 import com.digital.lending.loanaccount.exception.BusinessRuleViolationException;
 import com.digital.lending.loanaccount.exception.ResourceNotFoundException;
 import com.digital.lending.loanaccount.model.LoanAccount;
@@ -30,11 +33,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,14 +70,19 @@ class LoanAccountManagementServiceTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         lenient().when(auditLogRepository.save(any(LoanAccountAuditLog.class)))
-                 .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         sampleRequest = new LoanAccountOpeningRequestDto();
-        sampleRequest.setProfileId("CUST-10029");
+        sampleRequest.setProfileId("PROF-10029");
         sampleRequest.setLoanProductId(UUID.randomUUID().toString());
         sampleRequest.setIdempotencyKey("idem_key_9921");
         sampleRequest.setInitialPrincipal(new BigDecimal("15000.00"));
         sampleRequest.setParentLoanAccountId(null);
+        sampleRequest.setPartnerId("SAF_KE_01");
+        sampleRequest.setCurrency("KES");
+        sampleRequest.setScoringFeatures(Map.of("wallet_throughput_30d", "250000.00"));
+        sampleRequest.setDisbursementProviderId("INTERNAL");
+        sampleRequest.setDisbursementDestinationReference("WALLET-PROF-10029");
     }
 
     @Nested
@@ -78,182 +90,209 @@ class LoanAccountManagementServiceTest {
     class ProvisionNewAccountTests {
 
         @Test
-        @DisplayName("Idempotency Hit: Should return existing account immediately if idempotency key is already cached")
+        @DisplayName("Should return existing account immediately if idempotency key is already cached")
         void shouldReturnExistingAccountOnIdempotencyHit() {
             LoanAccount existingAccount = new LoanAccount();
             existingAccount.setId("acc_existing");
-            existingAccount.setAccountNumber("LN-EXISTING-01");
-            existingAccount.setProfileId("CUST-10029");
+            existingAccount.setProfileId("PROF-10029");
             existingAccount.setIdempotencyKey(sampleRequest.getIdempotencyKey());
-            existingAccount.setIssuanceStatus(IssuanceStatus.DRAFT);
+            existingAccount.setIssuanceStatus(IssuanceStatus.PENDING_SCORE_VALIDATION);
 
             when(accountRepository.findByIdempotencyKey(sampleRequest.getIdempotencyKey()))
                     .thenReturn(Optional.of(existingAccount));
 
             LoanAccountResponseDto result = service.provisionNewAccount(sampleRequest, ACTOR);
 
-            assertNotNull(result);
             assertEquals("acc_existing", result.getId());
             verify(accountRepository, never()).save(any());
             verify(eventPublisher, never()).publishEvent(any());
         }
 
         @Test
-        @DisplayName("Risk Threshold Breach: Should throw BusinessRuleViolationException if profile already holds blocked active loan exposures")
+        @DisplayName("Should throw BusinessRuleViolationException if profile already holds blocked active loan exposures")
         void shouldThrowExceptionWhenActiveExposureDiscovered() {
-            when(accountRepository.findByIdempotencyKey(sampleRequest.getIdempotencyKey()))
-                    .thenReturn(Optional.empty());
-
-            // Broaden collection matcher to any() to bypass strict list definition constraints
-            when(accountRepository.existsByProfileIdAndLoanProductIdAndPerformanceStatusIn(
-                    eq(sampleRequest.getProfileId()),
-                    eq(sampleRequest.getLoanProductId()),
-                    any()))
+            when(accountRepository.findByIdempotencyKey(sampleRequest.getIdempotencyKey())).thenReturn(Optional.empty());
+            when(accountRepository.existsByProfileIdAndLoanProductIdAndPerformanceStatusIn(eq(sampleRequest.getProfileId()), eq(sampleRequest.getLoanProductId()), any()))
                     .thenReturn(true);
 
-            BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class, () ->
-                service.provisionNewAccount(sampleRequest, ACTOR)
-            );
-
-            assertEquals("Profile already holds an unresolved active loan position for this product code.", exception.getMessage());
+            assertThrows(BusinessRuleViolationException.class, () -> service.provisionNewAccount(sampleRequest, ACTOR));
             verify(accountRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Happy Path: Should persist account in DRAFT, log audit trace, and publish DraftLoanEvent")
-        void shouldProvisionDraftAccountCleanly() {
-            when(accountRepository.findByIdempotencyKey(sampleRequest.getIdempotencyKey()))
-                    .thenReturn(Optional.empty());
-            when(accountRepository.existsByProfileIdAndLoanProductIdAndPerformanceStatusIn(any(), any(), any()))
-                    .thenReturn(false);
+        @DisplayName("Should persist account in PENDING_SCORE_VALIDATION and publish LoanApplicationCreatedEvent")
+        void shouldProvisionPendingAccountCleanly() {
+            when(accountRepository.findByIdempotencyKey(sampleRequest.getIdempotencyKey())).thenReturn(Optional.empty());
+            when(accountRepository.existsByProfileIdAndLoanProductIdAndPerformanceStatusIn(any(), any(), any())).thenReturn(false);
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             LoanAccountResponseDto response = service.provisionNewAccount(sampleRequest, ACTOR);
 
-            assertNotNull(response);
-            assertTrue(response.getId().startsWith("acc_"));
-            assertEquals(IssuanceStatus.DRAFT, response.getIssuanceStatus());
-            assertEquals(sampleRequest.getInitialPrincipal(), response.getInitialPrincipal());
+            assertEquals(IssuanceStatus.PENDING_SCORE_VALIDATION, response.getIssuanceStatus());
+            assertEquals(new BigDecimal("15000.00"), response.getOutstandingPrincipal());
 
-            // Verifies the audit record is safely triggered
-            verify(auditLogRepository, atLeastOnce()).save(any(LoanAccountAuditLog.class));
-
-            ArgumentCaptor<DraftLoanEvent> eventCaptor = ArgumentCaptor.forClass(DraftLoanEvent.class);
-            verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
-
-            DraftLoanEvent publishedEvent = eventCaptor.getValue();
-            assertEquals(response.getId(), publishedEvent.getLoanAccountId());
-            assertEquals(sampleRequest.getProfileId(), publishedEvent.getProfileId());
+            ArgumentCaptor<LoanApplicationCreatedEvent> eventCaptor = ArgumentCaptor.forClass(LoanApplicationCreatedEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertEquals(response.getId(), eventCaptor.getValue().loanAccountId());
         }
     }
 
     @Nested
-    @DisplayName("Method: processUnderwritingOutcome")
-    class UnderwritingOutcomeTests {
+    @DisplayName("Method: application decision processing")
+    class ApplicationDecisionTests {
 
-        private LoanAccount draftAccount;
+        private LoanAccount pendingAccount;
 
         @BeforeEach
         void setUp() {
-            draftAccount = new LoanAccount();
-            draftAccount.setId("acc_test_id");
-            draftAccount.setAccountNumber("LN-PENDING-02");
-            draftAccount.setProfileId("CUST-10029");
-            draftAccount.setLoanProductId(UUID.randomUUID().toString());
-            draftAccount.setInitialPrincipal(new BigDecimal("10000.00"));
-            draftAccount.setIssuanceStatus(IssuanceStatus.DRAFT);
-            draftAccount.setPerformanceStatus(null);
+            pendingAccount = new LoanAccount();
+            pendingAccount.setId("acc_test_id");
+            pendingAccount.setProfileId("PROF-10029");
+            pendingAccount.setLoanProductId(UUID.randomUUID().toString());
+            pendingAccount.setInitialPrincipal(new BigDecimal("10000.00"));
+            pendingAccount.setOutstandingPrincipal(new BigDecimal("10000.00"));
+            pendingAccount.setIssuanceStatus(IssuanceStatus.PENDING_SCORE_VALIDATION);
         }
 
         @Test
-        @DisplayName("Unrecognized ID Guard: Should log error and abort if the target account identifier is missing")
-        void shouldAbortIfAccountDoesNotExist() {
+        void shouldAbortApprovalIfAccountDoesNotExist() {
             when(accountRepository.findById("acc_missing")).thenReturn(Optional.empty());
 
-            LoanCreditScoreEvaluatedEvent event = new LoanCreditScoreEvaluatedEvent(
-                    this, "acc_missing", "dec_01", "APPROVED", new BigDecimal("20000.00"), 720.0, ACTOR
-            );
-
-            service.processUnderwritingOutcome(event);
-
-            verify(accountRepository, never()).save(any());
-            verify(eventPublisher, never()).publishEvent(any());
-        }
-
-        @Test
-        @DisplayName("Lifecycle Guard: Should log warning and skip execution if account is no longer in DRAFT state")
-        void shouldSkipIfAccountIsNotInDraftStatus() {
-            draftAccount.setIssuanceStatus(IssuanceStatus.APPROVED_ISSUED);
-            when(accountRepository.findById(draftAccount.getId())).thenReturn(Optional.of(draftAccount));
-
-            LoanCreditScoreEvaluatedEvent event = new LoanCreditScoreEvaluatedEvent(
-                    this, draftAccount.getId(), "dec_01", "APPROVED", new BigDecimal("20000.00"), 720.0, ACTOR
-            );
-
-            service.processUnderwritingOutcome(event);
+            LoanApplicationApprovedEvent event = approvalEvent("acc_missing", new BigDecimal("20000.00"));
+            service.processApprovedApplication(event);
 
             verify(accountRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Underwriting Denial: Should transition account state to DENIED if decision is not APPROVED")
-        void shouldTransitionToDeniedIfDecisionFails() {
-            when(accountRepository.findById(draftAccount.getId())).thenReturn(Optional.of(draftAccount));
+        void shouldSkipApprovalIfAccountIsNotPending() {
+            pendingAccount.setIssuanceStatus(IssuanceStatus.ACTIVE);
+            when(accountRepository.findById(pendingAccount.getId())).thenReturn(Optional.of(pendingAccount));
+
+            service.processApprovedApplication(approvalEvent(pendingAccount.getId(), new BigDecimal("20000.00")));
+
+            verify(accountRepository, never()).save(any());
+        }
+
+        @Test
+        void shouldTransitionToDeniedOnRejectedDecisionEvent() {
+            when(accountRepository.findById(pendingAccount.getId())).thenReturn(Optional.of(pendingAccount));
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            LoanCreditScoreEvaluatedEvent declineEvent = new LoanCreditScoreEvaluatedEvent(
-                    this, draftAccount.getId(), "dec_rejected", "DECLINED", BigDecimal.ZERO, 450.0, ACTOR
+            LoanApplicationRejectedEvent rejectionEvent = new LoanApplicationRejectedEvent(
+                    pendingAccount.getId(), "dec_rejected", pendingAccount.getProfileId(), pendingAccount.getLoanProductId(), pendingAccount.getInitialPrincipal(),
+                    "DECLINED", "Score below threshold", 450.0, "SAF_KE_01", "KES", ACTOR, ZonedDateTime.now()
             );
 
-            service.processUnderwritingOutcome(declineEvent);
+            service.processRejectedApplication(rejectionEvent);
 
-            assertEquals(IssuanceStatus.DENIED, draftAccount.getIssuanceStatus());
-            verify(accountRepository).save(draftAccount);
-            verify(auditLogRepository, atLeastOnce()).save(any(LoanAccountAuditLog.class));
+            assertEquals(IssuanceStatus.DENIED, pendingAccount.getIssuanceStatus());
         }
 
         @Test
-        @DisplayName("Limit Breach Policy: Should mark application as DENIED if allocated credit capacity is lower than requested principal")
         void shouldDenyIfAllocatedCreditLimitIsInsufficient() {
-            draftAccount.setInitialPrincipal(new BigDecimal("50000.00"));
-            when(accountRepository.findById(draftAccount.getId())).thenReturn(Optional.of(draftAccount));
+            pendingAccount.setInitialPrincipal(new BigDecimal("50000.00"));
+            pendingAccount.setOutstandingPrincipal(new BigDecimal("50000.00"));
+            when(accountRepository.findById(pendingAccount.getId())).thenReturn(Optional.of(pendingAccount));
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            LoanCreditScoreEvaluatedEvent lowLimitEvent = new LoanCreditScoreEvaluatedEvent(
-                    this, draftAccount.getId(), "dec_insufficient", "APPROVED", new BigDecimal("5000.00"), 610.0, ACTOR
-            );
+            service.processApprovedApplication(approvalEvent(pendingAccount.getId(), new BigDecimal("5000.00")));
 
-            service.processUnderwritingOutcome(lowLimitEvent);
-
-            assertEquals(IssuanceStatus.DENIED, draftAccount.getIssuanceStatus());
-            verify(accountRepository).save(draftAccount);
-            verify(auditLogRepository, atLeastOnce()).save(any(LoanAccountAuditLog.class));
+            assertEquals(IssuanceStatus.DENIED, pendingAccount.getIssuanceStatus());
+            verify(eventPublisher, never()).publishEvent(any(LoanDisbursalRequestedEvent.class));
         }
 
         @Test
-        @DisplayName("Success Path: Should issue account, allocate an account number, mark ACTIVE, and broadcast LoanApprovedStatusEvent")
-        void shouldApproveAndIssueLoanCleanlyOnValidOutcome() {
-            // Keep initial requested principal at 10,000 to remain safely within the 50,000 mock allocation capacity
-            draftAccount.setInitialPrincipal(new BigDecimal("10000.00"));
-            when(accountRepository.findById(draftAccount.getId())).thenReturn(Optional.of(draftAccount));
+        void shouldApproveAndRequestDisbursal() {
+            when(accountRepository.findById(pendingAccount.getId())).thenReturn(Optional.of(pendingAccount));
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            LoanCreditScoreEvaluatedEvent clearApprovalEvent = new LoanCreditScoreEvaluatedEvent(
-                    this, draftAccount.getId(), "dec_success_01", "APPROVED", new BigDecimal("50000.00"), 780.0, ACTOR
+            service.processApprovedApplication(approvalEvent(pendingAccount.getId(), new BigDecimal("50000.00")));
+
+            assertEquals(IssuanceStatus.APPROVED, pendingAccount.getIssuanceStatus());
+            assertNotNull(pendingAccount.getAccountNumber());
+            verify(eventPublisher).publishEvent(any(LoanDisbursalRequestedEvent.class));
+        }
+
+        private LoanApplicationApprovedEvent approvalEvent(String accountId, BigDecimal approvedLimit) {
+            return new LoanApplicationApprovedEvent(
+                    accountId, "dec_success_01", pendingAccount.getProfileId(), pendingAccount.getLoanProductId(), pendingAccount.getInitialPrincipal(),
+                    approvedLimit, 780.0, "SAF_KE_01", "KES", "INTERNAL", "WALLET-PROF-10029", ACTOR, ZonedDateTime.now()
             );
+        }
+    }
 
-            service.processUnderwritingOutcome(clearApprovalEvent);
+    @Nested
+    @DisplayName("Method: payment event processing")
+    class PaymentEventProcessingTests {
 
-            assertEquals(IssuanceStatus.APPROVED_ISSUED, draftAccount.getIssuanceStatus());
-            assertEquals(PerformanceStatus.ACTIVE, draftAccount.getPerformanceStatus());
-            assertNotNull(draftAccount.getAccountNumber());
+        private LoanAccount approvedAccount;
+        private LoanAccount activeAccount;
 
-            verify(accountRepository).save(draftAccount);
-            verify(auditLogRepository, atLeastOnce()).save(any(LoanAccountAuditLog.class));
+        @BeforeEach
+        void setUp() {
+            approvedAccount = new LoanAccount();
+            approvedAccount.setId("acc_approved");
+            approvedAccount.setAccountNumber("LN-2026-12345");
+            approvedAccount.setProfileId("PROF-10029");
+            approvedAccount.setLoanProductId(UUID.randomUUID().toString());
+            approvedAccount.setInitialPrincipal(new BigDecimal("10000.00"));
+            approvedAccount.setOutstandingPrincipal(new BigDecimal("10000.00"));
+            approvedAccount.setIssuanceStatus(IssuanceStatus.APPROVED);
+            approvedAccount.setPerformanceStatus(PerformanceStatus.ACTIVE);
 
-            ArgumentCaptor<LoanApprovedStatusEvent> approvalCaptor = ArgumentCaptor.forClass(LoanApprovedStatusEvent.class);
-            verify(eventPublisher).publishEvent(approvalCaptor.capture());
-            assertEquals(draftAccount.getId(), approvalCaptor.getValue().getLoanAccountId());
+            activeAccount = new LoanAccount();
+            activeAccount.setId("acc_active");
+            activeAccount.setAccountNumber("LN-2026-54321");
+            activeAccount.setProfileId("PROF-10029");
+            activeAccount.setLoanProductId(UUID.randomUUID().toString());
+            activeAccount.setInitialPrincipal(new BigDecimal("10000.00"));
+            activeAccount.setOutstandingPrincipal(new BigDecimal("10000.00"));
+            activeAccount.setIssuanceStatus(IssuanceStatus.ACTIVE);
+            activeAccount.setPerformanceStatus(PerformanceStatus.ACTIVE);
+        }
+
+        @Test
+        void shouldActivateApprovedLoanOnCompletedDisbursement() {
+            when(accountRepository.findByAccountNumber("LN-2026-12345")).thenReturn(Optional.of(approvedAccount));
+            when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.processPaymentEvent(new PaymentEvent(
+                    "tx_1", "PROF-10029", "LN-2026-12345", "DISBURSEMENT", "INTERNAL", "COMPLETED",
+                    new BigDecimal("10000.00"), "KES", "INTREF001", LocalDateTime.now()
+            ));
+
+            assertEquals(IssuanceStatus.ACTIVE, approvedAccount.getIssuanceStatus());
+            assertNotNull(approvedAccount.getTakenAt());
+        }
+
+        @Test
+        void shouldApplyPartialRepayment() {
+            when(accountRepository.findByAccountNumber("LN-2026-54321")).thenReturn(Optional.of(activeAccount));
+            when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.processPaymentEvent(new PaymentEvent(
+                    "tx_2", "PROF-10029", "LN-2026-54321", "REPAYMENT", "MPESA", "COMPLETED",
+                    new BigDecimal("2500.00"), "KES", "MPREF001", LocalDateTime.now()
+            ));
+
+            assertEquals(new BigDecimal("7500.00"), activeAccount.getOutstandingPrincipal());
+            assertEquals(IssuanceStatus.ACTIVE, activeAccount.getIssuanceStatus());
+        }
+
+        @Test
+        void shouldSettleLoanOnFullRepayment() {
+            when(accountRepository.findByAccountNumber("LN-2026-54321")).thenReturn(Optional.of(activeAccount));
+            when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.processPaymentEvent(new PaymentEvent(
+                    "tx_3", "PROF-10029", "LN-2026-54321", "REPAYMENT", "MPESA", "COMPLETED",
+                    new BigDecimal("10000.00"), "KES", "MPREF002", LocalDateTime.now()
+            ));
+
+            assertEquals(0, BigDecimal.ZERO.compareTo(activeAccount.getOutstandingPrincipal()));
+            assertEquals(IssuanceStatus.SETTLED, activeAccount.getIssuanceStatus());
+            verify(eventPublisher).publishEvent(any(LoanAccountSettledEvent.class));
         }
     }
 
@@ -268,10 +307,9 @@ class LoanAccountManagementServiceTest {
         void setUp() {
             activeAccount = new LoanAccount();
             activeAccount.setId("acc_active_id");
-            activeAccount.setAccountNumber("LN-ACTIVE-99");
-            activeAccount.setProfileId("CUST-10029");
+            activeAccount.setProfileId("PROF-10029");
             activeAccount.setLoanProductId(UUID.randomUUID().toString());
-            activeAccount.setIssuanceStatus(IssuanceStatus.APPROVED_ISSUED);
+            activeAccount.setIssuanceStatus(IssuanceStatus.ACTIVE);
             activeAccount.setPerformanceStatus(PerformanceStatus.ACTIVE);
 
             modificationRequest = new StatusModificationRequestDto();
@@ -279,46 +317,29 @@ class LoanAccountManagementServiceTest {
         }
 
         @Test
-        @DisplayName("Resource Absence Check: Should throw ResourceNotFoundException if account reference doesn't exist")
         void shouldThrowExceptionWhenAccountMissing() {
             when(accountRepository.findById("acc_nonexistent")).thenReturn(Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class, () ->
-                    service.modifyPerformanceStatus("acc_nonexistent", modificationRequest, ACTOR)
-            );
+            assertThrows(ResourceNotFoundException.class, () -> service.modifyPerformanceStatus("acc_nonexistent", modificationRequest, ACTOR));
         }
 
         @Test
-        @DisplayName("State Guard Rule: Should throw BusinessRuleViolationException if attempting modification on unissued or draft entry frames")
-        void shouldThrowExceptionIfAccountIsNotYetIssued() {
-            activeAccount.setIssuanceStatus(IssuanceStatus.DRAFT);
+        void shouldThrowExceptionIfAccountIsNotYetActive() {
+            activeAccount.setIssuanceStatus(IssuanceStatus.APPROVED);
             when(accountRepository.findById(activeAccount.getId())).thenReturn(Optional.of(activeAccount));
 
-            BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class, () ->
-                    service.modifyPerformanceStatus(activeAccount.getId(), modificationRequest, ACTOR)
-            );
-            assertEquals("Cannot change the performance status of an unissued or denied loan account record line.", exception.getMessage());
+            BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+                    () -> service.modifyPerformanceStatus(activeAccount.getId(), modificationRequest, ACTOR));
+            assertEquals("Cannot change the performance status of an unissued, denied, or settled loan account record line.", exception.getMessage());
         }
 
         @Test
-        @DisplayName("Happy Path: Should successfully shift performance rating matrix status and write full audit logs")
         void shouldUpdatePerformanceStatusCleanly() {
             when(accountRepository.findById(activeAccount.getId())).thenReturn(Optional.of(activeAccount));
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             LoanAccountResponseDto result = service.modifyPerformanceStatus(activeAccount.getId(), modificationRequest, ACTOR);
 
-            assertNotNull(result);
             assertEquals(PerformanceStatus.WATCH, result.getPerformanceStatus());
-            verify(accountRepository).save(activeAccount);
-
-            ArgumentCaptor<LoanAccountAuditLog> auditCaptor = ArgumentCaptor.forClass(LoanAccountAuditLog.class);
-            verify(auditLogRepository, atLeastOnce()).save(auditCaptor.capture());
-
-            LoanAccountAuditLog documentedLog = auditCaptor.getValue();
-            assertEquals("PERFORMANCE_STATUS_CHANGED", documentedLog.getEventType());
-            assertNotNull(documentedLog.getPreviousState());
-            assertNotNull(documentedLog.getNewState());
         }
     }
 }

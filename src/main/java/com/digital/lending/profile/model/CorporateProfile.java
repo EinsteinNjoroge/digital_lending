@@ -1,0 +1,50 @@
+package com.digital.lending.profile.model;
+
+import com.digital.lending.profile.enums.ProfileType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.JoinColumn;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "profile_corporate_profile")
+@DiscriminatorValue("CORPORATE")
+@Getter
+@Setter
+public class CorporateProfile extends Profile {
+
+    public CorporateProfile() {
+        super.setProfileType(ProfileType.CORPORATE);
+    }
+
+    @Column(name = "company_name", nullable = false)
+    private String companyName;
+
+    @Column(name = "registration_number", nullable = false, unique = true)
+    private String registrationNumber;
+
+    @Column(name = "incorporation_date", nullable = false)
+    private LocalDate incorporationDate;
+
+    @Column(name = "authorized_signatory_name", nullable = false)
+    private String authorizedSignatoryName;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "profile_corporate_director_identities", joinColumns = @JoinColumn(name = "profile_id"))
+    private List<IdentityDocument> directorIdentities = new ArrayList<>();
+
+    @Override
+    public String getDisplayName() {
+        return companyName + " (LLC)";
+    }
+}

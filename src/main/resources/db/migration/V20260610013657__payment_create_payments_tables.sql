@@ -30,6 +30,8 @@ CREATE TABLE payment_parties (
     id VARCHAR(50) PRIMARY KEY,
     party_reference VARCHAR(100) NOT NULL,
     display_name VARCHAR(150),
+    party_type VARCHAR(30) NOT NULL,
+    source_module VARCHAR(30) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
@@ -44,6 +46,8 @@ CREATE TABLE payment_transactions (
     provider_id VARCHAR(50) NOT NULL,
     status_id VARCHAR(50) NOT NULL,
     account_reference VARCHAR(100) NOT NULL,
+    loan_account_id VARCHAR(50),
+    profile_id VARCHAR(64),
     sender_party_id VARCHAR(50) NOT NULL,
     receiver_party_id VARCHAR(50) NOT NULL,
     amount DECIMAL(18,4) NOT NULL,
@@ -65,13 +69,18 @@ CREATE UNIQUE INDEX idx_tx_idempotency
 CREATE INDEX idx_tx_account_ref
     ON payment_transactions(account_reference);
 
+CREATE INDEX idx_tx_profile_id
+    ON payment_transactions(profile_id);
+
 CREATE TABLE payment_provider_metadata (
     id VARCHAR(50) PRIMARY KEY,
     transaction_id VARCHAR(50) NOT NULL,
+    provider_transaction_id VARCHAR(100),
     external_reference_number VARCHAR(100),
     raw_payload_dump TEXT,
     error_code VARCHAR(50),
     error_message TEXT,
+    callback_received_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL,
 
     FOREIGN KEY (transaction_id)
@@ -84,7 +93,8 @@ CREATE INDEX idx_meta_tx_id
 CREATE INDEX idx_meta_ext_ref
     ON payment_provider_metadata(external_reference_number);
 
-
+CREATE INDEX idx_meta_provider_tx_id
+    ON payment_provider_metadata(provider_transaction_id);
 
 INSERT INTO payment_categories (id, name, description, created_at) VALUES
 ('DISBURSEMENT', 'Loan Disbursal', 'Outbound capital payout to a borrower account reference.', '2026-06-10 00:00:00'),

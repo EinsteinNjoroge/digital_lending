@@ -6,13 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-
 @EnableAsync
 @Configuration
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI globalOpenAPIMetaData() {
+    public OpenAPI globalOpenApiMetadata() {
         return new OpenAPI()
                 .info(new Info()
                         .title("Core Lending Platform API Engine")

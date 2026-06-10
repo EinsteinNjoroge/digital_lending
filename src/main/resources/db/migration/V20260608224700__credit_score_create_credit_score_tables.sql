@@ -12,10 +12,21 @@ CREATE TABLE credit_scoring_model_definition (
     UNIQUE (model_code, partner_id, currency)
 );
 
+CREATE TABLE credit_profile (
+    profile_id VARCHAR(64) PRIMARY KEY,
+    baseline_score NUMERIC(10,2) NOT NULL,
+    introductory_credit_limit NUMERIC(18,4) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    source VARCHAR(32) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE credit_scoring_decision_log (
     id BIGSERIAL PRIMARY KEY,
     transaction_id VARCHAR(64) NOT NULL,
-    customer_id VARCHAR(64) NOT NULL,
+    profile_id VARCHAR(64) NOT NULL,
     partner_id VARCHAR(64) NOT NULL,
     model_definition_id VARCHAR(64) NOT NULL
     REFERENCES credit_scoring_model_definition(id),
@@ -34,4 +45,4 @@ CREATE INDEX idx_credit_scoring_model_routing
     ON credit_scoring_model_definition (partner_id, currency, is_active);
 
 CREATE INDEX idx_credit_scoring_decision_audit
-    ON credit_scoring_decision_log (customer_id, evaluated_at DESC);
+    ON credit_scoring_decision_log (profile_id, evaluated_at DESC);

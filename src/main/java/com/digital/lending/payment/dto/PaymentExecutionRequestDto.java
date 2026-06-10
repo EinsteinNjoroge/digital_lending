@@ -30,6 +30,12 @@ public class PaymentExecutionRequestDto {
     @Schema(example = "LN-2026-99102", description = "Generic reference tracking line completely blind to internal domain models")
     private String accountReference;
 
+    @Schema(example = "acc_882c4491-1c20-4e0c-bc1a-592b68f275ca", description = "Optional internal loan account id for event-driven payment workflows")
+    private String loanAccountId;
+
+    @Schema(example = "PROF-10029", description = "Optional profile identifier associated with the transaction for downstream event consumers")
+    private String profileId;
+
     @NotBlank
     @Schema(example = "PART-CUST-10029", description = "Sender profile pointer or corporate wallet token reference")
     private String senderPartyReference;

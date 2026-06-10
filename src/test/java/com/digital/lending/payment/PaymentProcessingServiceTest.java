@@ -1,17 +1,17 @@
 package com.digital.lending.payment;
 
+import com.digital.lending.events.PaymentEvent;
+import com.digital.lending.events.ProviderPayoutCompletedEvent;
 import com.digital.lending.payment.dto.PaymentExecutionRequestDto;
+import com.digital.lending.payment.dto.PaymentProviderCallbackRequestDto;
 import com.digital.lending.payment.dto.PaymentResponseDto;
-import com.digital.lending.payment.event.PaymentEvent;
+import com.digital.lending.payment.gateway.PaymentGatewayClient;
+import com.digital.lending.payment.gateway.PaymentGatewayInitiationResult;
+import com.digital.lending.payment.gateway.PaymentGatewayRequest;
 import com.digital.lending.payment.model.PaymentParty;
 import com.digital.lending.payment.model.PaymentProviderMetadata;
 import com.digital.lending.payment.model.PaymentTransaction;
-import com.digital.lending.payment.repository.PaymentCategoryRepository;
-import com.digital.lending.payment.repository.PaymentPartyRepository;
-import com.digital.lending.payment.repository.PaymentProviderMetadataRepository;
-import com.digital.lending.payment.repository.PaymentProviderRepository;
-import com.digital.lending.payment.repository.PaymentTransactionRepository;
-import com.digital.lending.payment.repository.TransactionStatusRepository;
+import com.digital.lending.payment.repository.*;
 import com.digital.lending.payment.service.PaymentProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -60,6 +60,9 @@ class PaymentProcessingServiceTest {
     private PaymentProviderMetadataRepository metadataRepository;
 
     @Mock
+    private PaymentGatewayClient paymentGatewayClient;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
@@ -74,6 +77,7 @@ class PaymentProcessingServiceTest {
         request.setCategoryId("repayment");
         request.setProviderId("mpesa");
         request.setAccountReference("LN-2026-99102");
+        request.setProfileId("PROF-10029");
         request.setSenderPartyReference("PART-CUST-10029");
         request.setReceiverPartyReference("PART-CO-DISBURSE-01");
         request.setAmount(new BigDecimal("7500.00"));
@@ -142,6 +146,7 @@ class PaymentProcessingServiceTest {
             verify(eventPublisher).publishEvent(eventCaptor.capture());
             assertEquals(response.id(), eventCaptor.getValue().transactionId());
             assertEquals("MPESA", eventCaptor.getValue().providerId());
+            assertEquals("PROF-10029", eventCaptor.getValue().profileId());
         }
 
         @Test
@@ -207,6 +212,160 @@ class PaymentProcessingServiceTest {
 
             assertEquals("Payment transaction status not found: COMPLETED", ex.getMessage());
             verify(transactionRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("initiateGatewayPayment")
+    class InitiateGatewayPaymentTests {
+
+        @Test
+        @DisplayName("Should create processing disbursement and persist gateway metadata")
+        void shouldInitiateGatewayPaymentSuccessfully() {
+            request.setCategoryId("disbursement");
+            request.setProviderId("internal");
+
+            when(transactionRepository.findByIdempotencyKey(request.getIdempotencyKey())).thenReturn(Optional.empty());
+            when(categoryRepository.existsById("DISBURSEMENT")).thenReturn(true);
+            when(providerRepository.existsById("INTERNAL")).thenReturn(true);
+            when(transactionStatusRepository.existsById("PROCESSING")).thenReturn(true);
+            when(partyRepository.findByPartyReference("PART-CUST-10029")).thenReturn(Optional.empty());
+            when(partyRepository.findByPartyReference("PART-CO-DISBURSE-01")).thenReturn(Optional.empty());
+            when(partyRepository.save(any(PaymentParty.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(transactionRepository.save(any(PaymentTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(metadataRepository.save(any(PaymentProviderMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(paymentGatewayClient.initiatePayment(any(PaymentGatewayRequest.class)))
+                    .thenReturn(new PaymentGatewayInitiationResult("INTREF001", "PROVIDER-TX-001", "{\"provider\":\"INTERNAL\"}"));
+
+            PaymentResponseDto response = service.initiateGatewayPayment(request);
+
+            assertEquals("DISBURSEMENT", response.category());
+            assertEquals("INTERNAL", response.provider());
+            assertEquals("PROCESSING", response.status());
+            assertEquals("INTREF001", response.externalReferenceNumber());
+
+            ArgumentCaptor<PaymentGatewayRequest> gatewayCaptor = ArgumentCaptor.forClass(PaymentGatewayRequest.class);
+            verify(paymentGatewayClient).initiatePayment(gatewayCaptor.capture());
+            assertEquals("INTERNAL", gatewayCaptor.getValue().providerId());
+            assertEquals("LN-2026-99102", gatewayCaptor.getValue().accountReference());
+            verify(eventPublisher, never()).publishEvent(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("processProviderCallback")
+    class ProcessProviderCallbackTests {
+
+        private PaymentProviderCallbackRequestDto callbackRequest;
+
+        @BeforeEach
+        void setUp() {
+            callbackRequest = new PaymentProviderCallbackRequestDto();
+            callbackRequest.setInternalTransactionId("tx_disb_1");
+            callbackRequest.setProviderTransactionId("PROVIDER-TX-001");
+            callbackRequest.setExternalReferenceNumber("EXT-001");
+            callbackRequest.setOutcomeStatus("COMPLETED");
+            callbackRequest.setAccountReference("LN-2026-99102");
+            callbackRequest.setProfileId("PROF-10029");
+            callbackRequest.setCategoryId("REPAYMENT");
+            callbackRequest.setAmount(new BigDecimal("7500.00"));
+            callbackRequest.setCurrency("KES");
+            callbackRequest.setRawPayload("{\"status\":\"COMPLETED\"}");
+            callbackRequest.setCallbackTimestamp(LocalDateTime.of(2026, 6, 10, 10, 30));
+        }
+
+        @Test
+        @DisplayName("Should finalize an existing disbursement and publish terminal events")
+        void shouldFinalizeExistingDisbursementCallback() {
+            PaymentTransaction existing = new PaymentTransaction();
+            existing.setId("tx_disb_1");
+            existing.setLoanAccountId("acc_1");
+            existing.setProfileId("PROF-10029");
+            existing.setProviderId("INTERNAL");
+            existing.setCategoryId("DISBURSEMENT");
+            existing.setStatusId("PROCESSING");
+            existing.setAccountReference("LN-2026-99102");
+            existing.setAmount(new BigDecimal("7500.00"));
+            existing.setCurrency("KES");
+
+            PaymentProviderMetadata existingMetadata = new PaymentProviderMetadata();
+            existingMetadata.setId("meta_1");
+            existingMetadata.setTransactionId("tx_disb_1");
+            existingMetadata.setExternalReferenceNumber("EXT-001");
+
+            when(transactionRepository.findById("tx_disb_1")).thenReturn(Optional.of(existing));
+            when(categoryRepository.existsById("DISBURSEMENT")).thenReturn(true);
+            when(providerRepository.existsById("INTERNAL")).thenReturn(true);
+            when(transactionStatusRepository.existsById("COMPLETED")).thenReturn(true);
+            when(transactionRepository.save(any(PaymentTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(metadataRepository.findByTransactionId("tx_disb_1")).thenReturn(Optional.of(existingMetadata));
+            when(metadataRepository.save(any(PaymentProviderMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            PaymentResponseDto response = service.processProviderCallback("internal", callbackRequest);
+
+            assertEquals("COMPLETED", response.status());
+            assertEquals("EXT-001", response.externalReferenceNumber());
+            assertEquals(callbackRequest.getCallbackTimestamp(), existing.getCompletedAt());
+
+            ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(eventPublisher, times(2)).publishEvent(eventCaptor.capture());
+            assertTrue(eventCaptor.getAllValues().stream().anyMatch(PaymentEvent.class::isInstance));
+            assertTrue(eventCaptor.getAllValues().stream().anyMatch(ProviderPayoutCompletedEvent.class::isInstance));
+        }
+
+        @Test
+        @DisplayName("Should create repayment transaction from callback when no existing transaction matches")
+        void shouldCreateRepaymentFromUnknownCallback() {
+            callbackRequest.setInternalTransactionId(null);
+            callbackRequest.setProviderTransactionId("MPESA-TX-777");
+            callbackRequest.setExternalReferenceNumber("MPESA-EXT-777");
+
+            when(metadataRepository.findByProviderTransactionId("MPESA-TX-777")).thenReturn(Optional.empty());
+            when(metadataRepository.findByExternalReferenceNumber("MPESA-EXT-777")).thenReturn(Optional.empty());
+            when(categoryRepository.existsById("REPAYMENT")).thenReturn(true);
+            when(providerRepository.existsById("MPESA")).thenReturn(true);
+            when(transactionStatusRepository.existsById("COMPLETED")).thenReturn(true);
+            when(partyRepository.findByPartyReference("PROF-10029")).thenReturn(Optional.empty());
+            when(partyRepository.findByPartyReference("LENDER_TREASURY")).thenReturn(Optional.empty());
+            when(partyRepository.save(any(PaymentParty.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(transactionRepository.save(any(PaymentTransaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(metadataRepository.save(any(PaymentProviderMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            PaymentResponseDto response = service.processProviderCallback("mpesa", callbackRequest);
+
+            assertEquals("REPAYMENT", response.category());
+            assertEquals("COMPLETED", response.status());
+            verify(eventPublisher, times(1)).publishEvent(any(PaymentEvent.class));
+            verify(eventPublisher, never()).publishEvent(any(ProviderPayoutCompletedEvent.class));
+        }
+
+        @Test
+        @DisplayName("Should return cached response when callback is replayed for a terminal transaction")
+        void shouldReturnCachedResponseForTerminalTransaction() {
+            PaymentTransaction existing = new PaymentTransaction();
+            existing.setId("tx_done");
+            existing.setProviderId("MPESA");
+            existing.setCategoryId("REPAYMENT");
+            existing.setStatusId("COMPLETED");
+            existing.setAccountReference("LN-2026-99102");
+            existing.setAmount(new BigDecimal("7500.00"));
+            existing.setCurrency("KES");
+            existing.setCompletedAt(LocalDateTime.of(2026, 6, 10, 10, 31));
+
+            PaymentProviderMetadata metadata = new PaymentProviderMetadata();
+            metadata.setTransactionId("tx_done");
+            metadata.setExternalReferenceNumber("EXT-CACHED");
+
+            callbackRequest.setInternalTransactionId("tx_done");
+            when(transactionRepository.findById("tx_done")).thenReturn(Optional.of(existing));
+            when(metadataRepository.findByTransactionId("tx_done")).thenReturn(Optional.of(metadata));
+
+            PaymentResponseDto response = service.processProviderCallback("mpesa", callbackRequest);
+
+            assertEquals("tx_done", response.id());
+            assertEquals("EXT-CACHED", response.externalReferenceNumber());
+            verify(transactionRepository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 
