@@ -85,7 +85,7 @@ class CreditScoringControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(brokenRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("BAD_REQUEST_PAYLOAD"))
+                .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST_PAYLOAD"))
                 .andExpect(jsonPath("$.details").value(org.hamcrest.Matchers.containsString("required")));
     }
 
@@ -105,7 +105,7 @@ class CreditScoringControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("CONFLICTING_CONFIGURATION"))
+                .andExpect(jsonPath("$.errorCode").value("CONFLICTING_CONFIGURATION"))
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("already exists")));
     }
 

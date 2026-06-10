@@ -5,6 +5,7 @@ import com.digital.lending.payment.controller.PaymentController;
 import com.digital.lending.payment.dto.PaymentCategoryRequest;
 import com.digital.lending.payment.dto.PaymentCategoryResponse;
 import com.digital.lending.payment.dto.PaymentExecutionRequestDto;
+import com.digital.lending.payment.dto.PaymentProviderCallbackRequestDto;
 import com.digital.lending.payment.dto.PaymentResponseDto;
 import com.digital.lending.payment.exception.GlobalExceptionHandler;
 import com.digital.lending.payment.service.PaymentCategoryService;
@@ -82,6 +83,22 @@ class PaymentControllerTest {
                 "MPESAREF1234ABCD",
                 LocalDateTime.of(2026, 6, 10, 10, 30)
         );
+    }
+
+    private PaymentProviderCallbackRequestDto validCallbackRequest() {
+        PaymentProviderCallbackRequestDto request = new PaymentProviderCallbackRequestDto();
+        request.setInternalTransactionId("tx_99201882");
+        request.setProviderTransactionId("MPESATX1234ABCD");
+        request.setExternalReferenceNumber("MPESAREF1234ABCD");
+        request.setOutcomeStatus("COMPLETED");
+        request.setAccountReference("LN-2026-99102");
+        request.setProfileId("PROF-10029");
+        request.setCategoryId("REPAYMENT");
+        request.setAmount(new BigDecimal("7500.00"));
+        request.setCurrency("KES");
+        request.setRawPayload("{\"provider\":\"MPESA\",\"status\":\"COMPLETED\"}");
+        request.setCallbackTimestamp(LocalDateTime.of(2026, 6, 10, 10, 30));
+        return request;
     }
 
     @Nested
@@ -167,6 +184,50 @@ class PaymentControllerTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
                     .andExpect(jsonPath("$.message").value("Payment provider not found: MPESA"));
+        }
+
+        @Test
+        @DisplayName("Should accept provider callback successfully")
+        void shouldAcceptProviderCallbackSuccessfully() throws Exception {
+            when(paymentProcessingService.processProviderCallback(eq("MPESA"), any(PaymentProviderCallbackRequestDto.class)))
+                    .thenReturn(validPaymentResponse());
+
+            mockMvc.perform(post("/api/v1/payments/providers/MPESA/callback")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validCallbackRequest())))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value("tx_99201882"))
+                    .andExpect(jsonPath("$.status").value("COMPLETED"));
+        }
+
+        @Test
+        @DisplayName("Should reject provider callback when required fields are missing")
+        void shouldRejectInvalidProviderCallbackPayload() throws Exception {
+            PaymentProviderCallbackRequestDto request = validCallbackRequest();
+            request.setOutcomeStatus("");
+            request.setAmount(null);
+
+            mockMvc.perform(post("/api/v1/payments/providers/MPESA/callback")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST_PAYLOAD"))
+                    .andExpect(jsonPath("$.details.outcomeStatus").exists())
+                    .andExpect(jsonPath("$.details.amount").exists());
+        }
+
+        @Test
+        @DisplayName("Should return invalid request when provider callback is rejected by service")
+        void shouldReturnInvalidRequestForProviderCallbackServiceError() throws Exception {
+            when(paymentProcessingService.processProviderCallback(eq("MPESA"), any(PaymentProviderCallbackRequestDto.class)))
+                    .thenThrow(new IllegalArgumentException("Unsupported callback outcome status: UNKNOWN"));
+
+            mockMvc.perform(post("/api/v1/payments/providers/MPESA/callback")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validCallbackRequest())))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+                    .andExpect(jsonPath("$.message").value("Unsupported callback outcome status: UNKNOWN"));
         }
 
         @Test

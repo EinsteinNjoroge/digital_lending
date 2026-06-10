@@ -20,6 +20,9 @@ public class PaymentProviderMetadata {
     @Column(name = "transaction_id")
     private String transactionId;
 
+    @Column(name = "provider_transaction_id")
+    private String providerTransactionId;
+
     @Column(name = "external_reference_number")
     private String externalReferenceNumber;
 
@@ -31,6 +34,9 @@ public class PaymentProviderMetadata {
 
     @Column(name = "error_message")
     private String errorMessage;
+
+    @Column(name = "callback_received_at")
+    private LocalDateTime callbackReceivedAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

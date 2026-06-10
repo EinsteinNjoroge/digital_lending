@@ -18,7 +18,7 @@ public class CreditScoringModelDefinition {
     @Id
     private String id;
 
-    @Column(name = "model_code", nullable = false, length = 32)
+    @Column(name = "loan_product_id", nullable = false, length = 64)
     private String loanProductId;
 
     @Column(name = "partner_id", nullable = false, length = 64)

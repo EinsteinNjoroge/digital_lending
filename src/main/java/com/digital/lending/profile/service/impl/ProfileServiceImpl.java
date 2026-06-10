@@ -1,5 +1,6 @@
 package com.digital.lending.profile.service.impl;
 
+import com.digital.lending.events.ProfileRegisteredEvent;
 import com.digital.lending.profile.dto.CreateProfileRequest;
 import com.digital.lending.profile.dto.IdentityDto;
 import com.digital.lending.profile.dto.ProfileDto;
@@ -11,9 +12,11 @@ import com.digital.lending.profile.exception.ProfileDomainException;
 import com.digital.lending.profile.model.*;
 import com.digital.lending.profile.repository.ProfileRepository;
 import com.digital.lending.profile.service.ProfileService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,9 +27,11 @@ import java.util.stream.Collectors;
 public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public ProfileServiceImpl(ProfileRepository repository) {
+    public ProfileServiceImpl(ProfileRepository repository, ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -102,7 +107,18 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setResidenceCountry(request.residenceCountry().toUpperCase());
         profile.setStatus(ProfileStatus.ACTIVE);
 
-        return mapToDto(repository.save(profile));
+        Profile savedProfile = repository.save(profile);
+        eventPublisher.publishEvent(new ProfileRegisteredEvent(
+                savedProfile.getId(),
+                savedProfile.getProfileType().name(),
+                savedProfile.getDisplayName(),
+                savedProfile.getEmail(),
+                savedProfile.getPhoneCountryCode() + savedProfile.getPhoneNationalNumber(),
+                savedProfile.getResidenceCountry(),
+                Instant.now()
+        ));
+
+        return mapToDto(savedProfile);
     }
 
     private void validateGlobalUniqueness(String docNumber) {

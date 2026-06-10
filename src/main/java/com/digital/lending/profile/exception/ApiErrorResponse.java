@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Map;
 
 public record ApiErrorResponse(
-        String code,
+        String errorCode,
         String message,
         Map<String, String> details,
         Instant timestamp

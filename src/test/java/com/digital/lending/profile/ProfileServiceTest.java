@@ -1,5 +1,6 @@
 package com.digital.lending.profile;
 
+import com.digital.lending.events.ProfileRegisteredEvent;
 import com.digital.lending.profile.dto.CreateProfileRequest;
 import com.digital.lending.profile.dto.ProfileDto;
 import com.digital.lending.profile.enums.DocumentType;
@@ -15,14 +16,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @DataJpaTest
 class ProfileServiceTest {
@@ -31,10 +35,12 @@ class ProfileServiceTest {
     private ProfileRepository repository;
 
     private ProfileServiceImpl profileService;
+    private ApplicationEventPublisher eventPublisher;
 
     @BeforeEach
     void setUp() {
-        profileService = new ProfileServiceImpl(repository);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        profileService = new ProfileServiceImpl(repository, eventPublisher);
     }
 
     @Nested
@@ -42,7 +48,7 @@ class ProfileServiceTest {
     class IndividualProfileTests {
 
         @Test
-        @DisplayName("Should onboard valid individual profile")
+        @DisplayName("Should onboard valid individual profile and publish ProfileRegisteredEvent")
         void shouldOnboardValidIndividualProfile() {
             CreateProfileRequest.Individual validRequest = individualRequest(
                     "alex.njoroge@lending.global",
@@ -57,6 +63,11 @@ class ProfileServiceTest {
             assertEquals("INDIVIDUAL", result.profileType());
             assertEquals("ACTIVE", result.status());
             assertEquals(1, result.identities().size());
+
+            ArgumentCaptor<ProfileRegisteredEvent> eventCaptor = ArgumentCaptor.forClass(ProfileRegisteredEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertEquals(result.id(), eventCaptor.getValue().profileId());
+            assertEquals(result.email(), eventCaptor.getValue().email());
         }
 
         @Test
@@ -76,6 +87,7 @@ class ProfileServiceTest {
                 profileService.createProfile(duplicateRequest);
                 repository.flush();
             });
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 
@@ -93,6 +105,7 @@ class ProfileServiceTest {
             assertNotNull(result.id());
             assertEquals("CORPORATE", result.profileType());
             assertEquals("ACTIVE", result.status());
+            verify(eventPublisher).publishEvent(any(ProfileRegisteredEvent.class));
         }
 
         @Test
@@ -107,6 +120,7 @@ class ProfileServiceTest {
                 profileService.createProfile(duplicateRequest);
                 repository.flush();
             });
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 
@@ -134,6 +148,7 @@ class ProfileServiceTest {
             });
 
             assertEquals("JOINT_IDENTITIES_MISMATCH", ex.getErrorCode());
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 

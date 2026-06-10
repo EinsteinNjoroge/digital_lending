@@ -23,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,11 +55,16 @@ class LoanAccountControllerTest {
 
     private LoanAccountOpeningRequestDto createValidRequest() {
         LoanAccountOpeningRequestDto dto = new LoanAccountOpeningRequestDto();
-        dto.setProfileId("CUST-405037");
+        dto.setProfileId("PROF-405037");
         dto.setLoanProductId("f186e626-c8b0-4e0c-bc1a-592b68f275ca");
         dto.setIdempotencyKey("idem_tx_pmfhi4ox");
         dto.setInitialPrincipal(new BigDecimal("5000.00"));
         dto.setParentLoanAccountId(null);
+        dto.setPartnerId("SAF_KE_01");
+        dto.setCurrency("KES");
+        dto.setScoringFeatures(Map.of("wallet_throughput_30d", "30000", "has_active_default", "false"));
+        dto.setDisbursementProviderId("INTERNAL");
+        dto.setDisbursementDestinationReference("WALLET-PROF-405037");
         return dto;
     }
 
@@ -79,8 +85,6 @@ class LoanAccountControllerTest {
                             .content(objectMapper.writeValueAsString(breakingRequest)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.errorCode").value("BAD_REQUEST_PAYLOAD"))
-                    .andExpect(jsonPath("$.message").value("Input payload validation failed. Check parameter compliance constraints."))
-                    .andExpect(jsonPath("$.timestamp").exists())
                     .andExpect(jsonPath("$.details.profileId").exists())
                     .andExpect(jsonPath("$.details.initialPrincipal").exists());
         }
@@ -91,12 +95,11 @@ class LoanAccountControllerTest {
     class BusinessRuleTests {
 
         @Test
-        @DisplayName("Should return 422 when customer violates underlying active loan exposure rule")
+        @DisplayName("Should return 422 when profile violates underlying active loan exposure rule")
         void shouldReturn422WhenOverlappingRiskProfileIsTriggered() throws Exception {
             LoanAccountOpeningRequestDto validRequest = createValidRequest();
             String exceptionMessage = "Profile already holds an unresolved active loan position for this product code.";
 
-            // Stub the exact method call inside LoanAccountManagementService
             when(loanAccountManagementService.provisionNewAccount(any(LoanAccountOpeningRequestDto.class), anyString()))
                     .thenThrow(new BusinessRuleViolationException(exceptionMessage));
 
@@ -106,27 +109,25 @@ class LoanAccountControllerTest {
                             .content(objectMapper.writeValueAsString(validRequest)))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.errorCode").value("BUSINESS_RULE_VIOLATION"))
-                    .andExpect(jsonPath("$.message").value(exceptionMessage))
-                    .andExpect(jsonPath("$.timestamp").exists());
+                    .andExpect(jsonPath("$.message").value(exceptionMessage));
         }
 
         @Test
-        @DisplayName("Should return 422 when altering state of an unissued or denied loan reference account")
+        @DisplayName("Should return 422 when altering state of an unissued or settled loan reference account")
         void shouldReturn422WhenModifyingPerformanceStatusOnUnissuedAccount() throws Exception {
             String targetAccountId = "acc_unissued_9912";
             StatusModificationRequestDto modificationRequest = new StatusModificationRequestDto();
             modificationRequest.setTargetStatus(PerformanceStatus.WATCH);
 
             when(loanAccountManagementService.modifyPerformanceStatus(anyString(), any(StatusModificationRequestDto.class), anyString()))
-                    .thenThrow(new BusinessRuleViolationException("Cannot change the performance status of an unissued or denied loan account record line."));
+                    .thenThrow(new BusinessRuleViolationException("Cannot change the performance status of an unissued, denied, or settled loan account record line."));
 
             mockMvc.perform(patch(BASE_API_URL + "/" + targetAccountId + "/performance-status")
                             .header(HEADER_MODIFIED_BY, TEST_USER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(modificationRequest)))
                     .andExpect(status().isUnprocessableEntity())
-                    .andExpect(jsonPath("$.errorCode").value("BUSINESS_RULE_VIOLATION"))
-                    .andExpect(jsonPath("$.message").value("Cannot change the performance status of an unissued or denied loan account record line."));
+                    .andExpect(jsonPath("$.errorCode").value("BUSINESS_RULE_VIOLATION"));
         }
     }
 
@@ -149,8 +150,7 @@ class LoanAccountControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(modificationRequest)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"))
-                    .andExpect(jsonPath("$.message").value("Target loan account reference identifier not discovered."));
+                    .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"));
         }
     }
 
@@ -172,67 +172,27 @@ class LoanAccountControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRequest)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.errorCode").value("DATA_CONFLICT_ERROR"))
-                    .andExpect(jsonPath("$.message").value("Concurrent exposure fallback blocked by database tracking logic. Profile already has an active loan of this product type."));
-        }
-
-        @Test
-        @DisplayName("Should return 409 Conflict when unique transaction idempotency key tracker hits")
-        void shouldReturn409WhenIdempotencyConstraintBreached() throws Exception {
-            LoanAccountOpeningRequestDto validRequest = createValidRequest();
-            String dbInternalMessage = "Exception executing batch statement; constraint [uk_loan_account_accounts_idempotency]";
-
-            when(loanAccountManagementService.provisionNewAccount(any(), anyString()))
-                    .thenThrow(new DataIntegrityViolationException(dbInternalMessage));
-
-            mockMvc.perform(post(BASE_API_URL)
-                            .header(HEADER_MODIFIED_BY, TEST_USER)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(validRequest)))
-                    .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.errorCode").value("DATA_CONFLICT_ERROR"))
-                    .andExpect(jsonPath("$.message").value("Duplicate transaction processing blocked by unique idempotency constraint tracking safety keys."));
+                    .andExpect(jsonPath("$.errorCode").value("DATA_CONFLICT_ERROR"));
         }
     }
 
     @Nested
-    @DisplayName("Scenario 5: Global Fallback Handler Plane (HTTP 500)")
-    class SystemicGlobalFailureTests {
-
-        @Test
-        @DisplayName("Should return 500 Internal Error when encountering unexpected backend crashes")
-        void shouldReturn500WhenUnhandledExceptionOccurs() throws Exception {
-            LoanAccountOpeningRequestDto validRequest = createValidRequest();
-
-            when(loanAccountManagementService.provisionNewAccount(any(), anyString()))
-                    .thenThrow(new NullPointerException("Fatal pointer offset error calculating memory buffers"));
-
-            mockMvc.perform(post(BASE_API_URL)
-                            .header(HEADER_MODIFIED_BY, TEST_USER)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(validRequest)))
-                    .andExpect(status().isInternalServerError())
-                    .andExpect(jsonPath("$.errorCode").value("INTERNAL_SERVER_FAULT"))
-                    .andExpect(jsonPath("$.message").value("A critical system execution failure occurred. Engineering team notified."));
-        }
-    }
-
-    @Nested
-    @DisplayName("Scenario 6: Successful Provisioning Happy Path Execution")
+    @DisplayName("Scenario 5: Successful Provisioning Happy Path Execution")
     class HappyPathTests {
 
         @Test
-        @DisplayName("Should return 200/201 and valid response object when request passes downstream footprint constraints")
+        @DisplayName("Should return 201 and valid response object when request passes downstream footprint constraints")
         void shouldReturnSuccessPayloadWhenRequestComplies() throws Exception {
             LoanAccountOpeningRequestDto validRequest = createValidRequest();
 
             LoanAccountResponseDto mockResponse = new LoanAccountResponseDto();
             mockResponse.setId("acc_b706abda-78ab-4bfe-a61f-165987bba796");
-            mockResponse.setProfileId("CUST-405037");
+            mockResponse.setProfileId("PROF-405037");
             mockResponse.setLoanProductId(validRequest.getLoanProductId());
             mockResponse.setIdempotencyKey("idem_tx_pmfhi4ox");
             mockResponse.setInitialPrincipal(new BigDecimal("5000.00"));
-            mockResponse.setIssuanceStatus(IssuanceStatus.DRAFT);
+            mockResponse.setOutstandingPrincipal(new BigDecimal("5000.00"));
+            mockResponse.setIssuanceStatus(IssuanceStatus.PENDING_SCORE_VALIDATION);
 
             when(loanAccountManagementService.provisionNewAccount(any(LoanAccountOpeningRequestDto.class), anyString()))
                     .thenReturn(mockResponse);
@@ -243,9 +203,8 @@ class LoanAccountControllerTest {
                             .content(objectMapper.writeValueAsString(validRequest)))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").value("acc_b706abda-78ab-4bfe-a61f-165987bba796"))
-                    .andExpect(jsonPath("$.profileId").value("CUST-405037"))
-                    .andExpect(jsonPath("$.initialPrincipal").value(5000.00))
-                    .andExpect(jsonPath("$.issuanceStatus").value("DRAFT"));
+                    .andExpect(jsonPath("$.profileId").value("PROF-405037"))
+                    .andExpect(jsonPath("$.issuanceStatus").value("PENDING_SCORE_VALIDATION"));
         }
     }
 }

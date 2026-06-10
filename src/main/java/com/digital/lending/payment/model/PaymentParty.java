@@ -23,6 +23,12 @@ public class PaymentParty {
     @Column(name = "display_name")
     private String displayName;
 
+    @Column(name = "party_type", nullable = false)
+    private String partyType;
+
+    @Column(name = "source_module", nullable = false)
+    private String sourceModule;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

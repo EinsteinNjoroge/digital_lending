@@ -33,6 +33,12 @@ public class PaymentTransaction {
     @Column(name = "account_reference")
     private String accountReference;
 
+    @Column(name = "loan_account_id")
+    private String loanAccountId;
+
+    @Column(name = "profile_id")
+    private String profileId;
+
     @Column(name = "sender_party_id")
     private String senderPartyId;
 

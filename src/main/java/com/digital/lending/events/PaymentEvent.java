@@ -1,11 +1,11 @@
-package com.digital.lending.payment.event;
+package com.digital.lending.events;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record PaymentEvent(
-        Object source,
         String transactionId,
+        String profileId,
         String accountReference,
         String categoryId,
         String providerId,

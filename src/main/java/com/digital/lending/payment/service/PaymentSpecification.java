@@ -33,10 +33,7 @@ public class PaymentSpecification {
                 predicates.add(criteriaBuilder.equal(root.get("currency"), currency.toUpperCase()));
             }
             if (profileId != null && !profileId.isBlank()) {
-                // Since profileId correlates back to the sender/receiver party mappings:
-                Predicate matchesSender = criteriaBuilder.equal(root.get("senderPartyId"), profileId);
-                Predicate matchesReceiver = criteriaBuilder.equal(root.get("receiverPartyId"), profileId);
-                predicates.add(criteriaBuilder.or(matchesSender, matchesReceiver));
+                predicates.add(criteriaBuilder.equal(root.get("profileId"), profileId));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

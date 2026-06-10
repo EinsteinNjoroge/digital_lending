@@ -128,7 +128,7 @@ class ProfileControllerTest {
 
             postProfile(objectMapper.writeValueAsString(invalidRequest))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+                    .andExpect(jsonPath("$.errorCode").value("INVALID_INPUT"));
         }
 
         @Test
@@ -155,7 +155,7 @@ class ProfileControllerTest {
 
             postProfile(malformedJson)
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("INVALID_INPUT_FORMAT"));
+                    .andExpect(jsonPath("$.errorCode").value("INVALID_INPUT_FORMAT"));
         }
 
         @Test
@@ -172,7 +172,7 @@ class ProfileControllerTest {
 
             postProfile(missingDiscriminatorJson)
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("INVALID_INPUT_FORMAT"));
+                    .andExpect(jsonPath("$.errorCode").value("INVALID_INPUT_FORMAT"));
         }
     }
 }

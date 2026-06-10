@@ -23,17 +23,20 @@ public class CreditScoringOrchestrationEngine {
     private final CreditScoringDecisionLogRepository decisionLogRepository;
     private final CreditScoringModelRepository modelRepository;
 
-    public CreditDecisionResponse resolveAndEvaluate(String partnerId, String currency, ScoringRequestDto request) {
-        CreditScoringModelDefinition activeModel = modelRepository.findActiveModel(partnerId, currency, request.getModelCode())
+    public CreditDecisionResponse resolveAndEvaluate(ScoringRequestDto request) {
+        CreditScoringModelDefinition activeModel = modelRepository.findActiveModel(
+                        request.getPartnerId(),
+                        request.getCurrency(),
+                        request.getLoanProductId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("No active credit scoring matrix mapped for Tenant: %s [%s] with Model: %s",
-                                partnerId, currency, request.getModelCode())));
+                        String.format("No active credit scoring matrix mapped for Tenant: %s [%s] with Loan Product: %s",
+                                request.getPartnerId(), request.getCurrency(), request.getLoanProductId())));
 
         return this.evaluateCreditRisk(
                 request.getTransactionId(),
-                request.getCustomerId(),
-                partnerId,
-                currency,
+                request.getProfileId(),
+                request.getPartnerId(),
+                request.getCurrency(),
                 activeModel.getId(),
                 request.getFeatures(),
                 activeModel.getRulesPayload()
@@ -43,7 +46,7 @@ public class CreditScoringOrchestrationEngine {
     @Transactional
     public CreditDecisionResponse evaluateCreditRisk(
             String transactionId,
-            String customerId,
+            String profileId,
             String partnerId,
             String currency,
             String modelDefinitionId,
@@ -63,7 +66,7 @@ public class CreditScoringOrchestrationEngine {
                         decisionOutcome = "DECLINED";
                         auditTrace.put("KO_TRIGGERED", koRule.getFeature() + " met rejection condition rule boundary.");
 
-                        return persistAndReturn(transactionId, customerId, partnerId, modelDefinitionId,
+                        return persistAndReturn(transactionId, profileId, partnerId, modelDefinitionId,
                                 finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
                     }
                 }
@@ -82,7 +85,7 @@ public class CreditScoringOrchestrationEngine {
                 decisionOutcome = "DECLINED";
                 auditTrace.put("DECISION_REASON", "Calculated total score " + finalScore + " fell below baseline metric rule target " + minRequired);
 
-                return persistAndReturn(transactionId, customerId, partnerId, modelDefinitionId,
+                return persistAndReturn(transactionId, profileId, partnerId, modelDefinitionId,
                         finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
             }
 
@@ -94,20 +97,20 @@ public class CreditScoringOrchestrationEngine {
             auditTrace.put("DECISION_REASON", "Scorecard profile criteria passed operational boundaries completely.");
 
         } catch (Exception e) {
-            log.error("Failed to execute risk matrix evaluation loop context for customer: {}", customerId, e);
+            log.error("Failed to execute risk matrix evaluation loop context for profile: {}", profileId, e);
             decisionOutcome = "REFERRED";
             auditTrace.put("ENGINE_SYSTEM_ERROR", e.getMessage());
             computedLimit = 0.0;
             finalScore = 0.0;
         }
 
-        return persistAndReturn(transactionId, customerId, partnerId, modelDefinitionId,
+        return persistAndReturn(transactionId, profileId, partnerId, modelDefinitionId,
                 finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
     }
 
     private CreditDecisionResponse persistAndReturn(
             String transactionId,
-            String customerId,
+            String profileId,
             String partnerId,
             String modelDefinitionId,
             double finalScore,
@@ -116,10 +119,12 @@ public class CreditScoringOrchestrationEngine {
             Map<String, String> resolvedFeatures,
             Map<String, String> auditTrace) {
 
+        String decisionId = transactionId;
+
         try {
             CreditScoringDecisionLog decisionLog = CreditScoringDecisionLog.builder()
                     .transactionId(transactionId)
-                    .customerId(customerId)
+                    .profileId(profileId)
                     .partnerId(partnerId)
                     .modelDefinitionId(modelDefinitionId)
                     .scoreCalculated(finalScore)
@@ -130,13 +135,14 @@ public class CreditScoringOrchestrationEngine {
                     .evaluatedAt(ZonedDateTime.now())
                     .build();
 
-            decisionLogRepository.save(decisionLog);
+            CreditScoringDecisionLog savedDecisionLog = decisionLogRepository.save(decisionLog);
+            decisionId = String.valueOf(savedDecisionLog.getId());
 
         } catch (Exception ex) {
             log.error("Critical Failure: Unable to persist structural transaction audit logs to database instance path: {}", transactionId, ex);
             auditTrace.put("PERSISTENCE_FAULT_WARNING", "Log failed execution payload write boundary: " + ex.getMessage());
         }
 
-        return new CreditDecisionResponse(transactionId, decisionOutcome, finalScore, computedLimit, auditTrace);
+        return new CreditDecisionResponse(decisionId, decisionOutcome, finalScore, computedLimit, auditTrace);
     }
 }
