@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/loan-accounts")
 @RequiredArgsConstructor
-@Tag(name = "Loan Accounts Ledger Control Plane", description = "Asynchronous accounting system handling decoupled drawdown workflows.")
+@Tag(name = "Accounts Management", description = "Asynchronous accounting system handling decoupled drawdown workflows.")
 public class LoanAccountController {
 
     private final LoanAccountManagementService accountService;

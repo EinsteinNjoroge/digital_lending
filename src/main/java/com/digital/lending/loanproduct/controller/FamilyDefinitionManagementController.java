@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/family-definitions")
 @RequiredArgsConstructor
-@Tag(name = "Loan Family Blueprint Registry Plane", description = "Administrative controls governing calculation execution logic clusters, state movement engines, and runtime bean strategy token allocations.")
+@Tag(name = "Loan Products management", description = "Administrative controls governing calculation execution logic clusters, state movement engines, and runtime bean strategy token allocations.")
 public class FamilyDefinitionManagementController {
 
     private final FamilyDefinitionManagementService familyService;
