@@ -15,12 +15,11 @@ import com.digital.lending.loanaccount.exception.BusinessRuleViolationException;
 import com.digital.lending.loanaccount.exception.ResourceNotFoundException;
 import com.digital.lending.loanaccount.model.LoanAccount;
 import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
+import com.digital.lending.loanaccount.model.LoanProductConfigurationProjection;
 import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
 import com.digital.lending.loanaccount.repository.LoanAccountRepository;
+import com.digital.lending.loanaccount.repository.LoanProductConfigurationProjectionRepository;
 import com.digital.lending.loanaccount.service.LoanAccountManagementService;
-import com.digital.lending.loanproduct.model.LoanProductConfiguration;
-import com.digital.lending.loanproduct.model.LoanProductParameter;
-import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +59,7 @@ class LoanAccountManagementServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private LoanProductConfigurationRepository loanProductConfigurationRepository;
+    private LoanProductConfigurationProjectionRepository loanProductConfigurationProjectionRepository;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -222,7 +221,7 @@ class LoanAccountManagementServiceTest {
 
         private LoanApplicationApprovedEvent approvalEvent(String accountId, BigDecimal approvedLimit) {
             return new LoanApplicationApprovedEvent(
-                    accountId, "dec_success_01", pendingAccount.getProfileId(), pendingAccount.getLoanProductId(), pendingAccount.getInitialPrincipal(),
+                    accountId, null, "dec_success_01", pendingAccount.getProfileId(), pendingAccount.getLoanProductId(), pendingAccount.getInitialPrincipal(),
                     approvedLimit, 780.0, "SAF_KE_01", "KES", "INTERNAL", "WALLET-PROF-10029", ACTOR, ZonedDateTime.now()
             );
         }
@@ -262,8 +261,8 @@ class LoanAccountManagementServiceTest {
         void shouldActivateApprovedLoanOnCompletedDisbursement() {
             when(accountRepository.findByAccountNumber("LN-2026-12345")).thenReturn(Optional.of(approvedAccount));
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(loanProductConfigurationRepository.findById(approvedAccount.getLoanProductId()))
-                    .thenReturn(Optional.of(productWithParameter(approvedAccount.getLoanProductId(), "max_tenor_days", "30")));
+            when(loanProductConfigurationProjectionRepository.findById(approvedAccount.getLoanProductId()))
+                    .thenReturn(Optional.of(productWithParameter(approvedAccount.getLoanProductId(), 30L)));
 
             service.processPaymentEvent(new PaymentEvent(
                     "tx_1", "PROF-10029", "LN-2026-12345", "DISBURSEMENT", "INTERNAL", "COMPLETED",
@@ -353,15 +352,10 @@ class LoanAccountManagementServiceTest {
         }
     }
 
-    private LoanProductConfiguration productWithParameter(String productId, String key, String value) {
-        LoanProductConfiguration product = new LoanProductConfiguration();
-        product.setId(productId);
-
-        LoanProductParameter parameter = new LoanProductParameter();
-        parameter.setProduct(product);
-        parameter.setParameterKey(key);
-        parameter.setParameterValue(value);
-        product.setParameters(java.util.List.of(parameter));
+    private LoanProductConfigurationProjection productWithParameter(String productId, long repaymentDueDays) {
+        LoanProductConfigurationProjection product = new LoanProductConfigurationProjection();
+        product.setLoanProductId(productId);
+        product.setRepaymentDueDays(repaymentDueDays);
         return product;
     }
 }

@@ -1,5 +1,6 @@
 package com.digital.lending.loanproduct.service;
 
+import com.digital.lending.events.LoanProductConfigurationChangedEvent;
 import com.digital.lending.loanproduct.dto.ProductConfigurationRequestDto;
 import com.digital.lending.loanproduct.dto.ProductConfigurationResponseDto;
 import com.digital.lending.loanproduct.exception.BusinessRuleViolationException;
@@ -10,6 +11,7 @@ import com.digital.lending.loanproduct.repository.LoanProductAuditLogRepository;
 import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +27,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoanProductManagementService {
 
+    private static final long DEFAULT_REPAYMENT_DUE_DAYS = 30L;
+
     private final LoanProductConfigurationRepository productRepository;
     private final LoanProductAuditLogRepository auditLogRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ProductConfigurationResponseDto createProduct(ProductConfigurationRequestDto request, String modifiedBy) {
@@ -53,8 +58,9 @@ public class LoanProductManagementService {
             request.getDocumentMatrices().forEach(config::addMatrix);
         }
 
-        LoanProductConfiguration savedEntity = productRepository.save(config);
+        LoanProductConfiguration savedEntity = persist(config);
         logAuditAction(savedEntity.getId(), "CREATE", modifiedBy, Map.of("version_allocated", nextVersion));
+        publishProjectionEvent(savedEntity);
         return convertToResponseDto(savedEntity);
     }
 
@@ -77,8 +83,9 @@ public class LoanProductManagementService {
             request.getDocumentMatrices().forEach(existingProduct::addMatrix);
         }
 
-        LoanProductConfiguration updatedEntity = productRepository.save(existingProduct);
+        LoanProductConfiguration updatedEntity = persist(existingProduct);
         logAuditAction(id, "UPDATE", modifiedBy, Map.of("updated_fields", "parameter_graphs_and_metadata"));
+        publishProjectionEvent(updatedEntity);
         return convertToResponseDto(updatedEntity);
     }
 
@@ -100,8 +107,14 @@ public class LoanProductManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("No configuration track discovered matching key index parameter: " + id));
         product.setIsActive(false);
         product.setUpdatedAt(ZonedDateTime.now());
-        productRepository.save(product);
+        LoanProductConfiguration savedProduct = persist(product);
         logAuditAction(id, "DELETE", modifiedBy, Map.of("action", "logical_deactivation"));
+        publishProjectionEvent(savedProduct);
+    }
+
+    private LoanProductConfiguration persist(LoanProductConfiguration entity) {
+        LoanProductConfiguration savedEntity = productRepository.save(entity);
+        return savedEntity != null ? savedEntity : entity;
     }
 
     private ProductConfigurationResponseDto convertToResponseDto(LoanProductConfiguration entity) {
@@ -122,6 +135,49 @@ public class LoanProductManagementService {
         entity.getDocumentMatrices().forEach(m -> matrixMap.put(m.getMatrixType(), m.getPayload()));
         dto.setDocumentMatrices(matrixMap);
         return dto;
+    }
+
+    private void publishProjectionEvent(LoanProductConfiguration entity) {
+        eventPublisher.publishEvent(new LoanProductConfigurationChangedEvent(
+                entity.getId(),
+                entity.getProductCode(),
+                entity.getPartnerId(),
+                entity.getCurrency(),
+                Boolean.TRUE.equals(entity.getIsActive()),
+                resolveRepaymentDueDays(entity),
+                entity.getUpdatedAt() == null ? ZonedDateTime.now() : entity.getUpdatedAt()
+        ));
+    }
+
+    private long resolveRepaymentDueDays(LoanProductConfiguration entity) {
+        Map<String, String> parameters = entity.getParameters().stream().collect(Collectors.toMap(
+                parameter -> parameter.getParameterKey().toLowerCase(),
+                parameter -> parameter.getParameterValue(),
+                (first, second) -> first
+        ));
+
+        return firstNumericValue(parameters,
+                "repayment_due_days",
+                "max_tenor_days",
+                "review_cycle_days",
+                "season_length_days",
+                "merchant_settlement_delay_days")
+                .orElse(DEFAULT_REPAYMENT_DUE_DAYS);
+    }
+
+    private java.util.Optional<Long> firstNumericValue(Map<String, String> parameters, String... keys) {
+        for (String key : keys) {
+            String value = parameters.get(key);
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            try {
+                return java.util.Optional.of(Long.parseLong(value));
+            } catch (NumberFormatException ex) {
+                log.warn("Ignoring non-numeric loan product parameter {}={} while resolving repayment due days", key, value);
+            }
+        }
+        return java.util.Optional.empty();
     }
 
     private void logAuditAction(String productId, String actionType, String user, Map<String, Object> context) {

@@ -3,3 +3,9 @@ spring:
     active: dev
   application:
     name: lending
+  modulith:
+    events:
+      completion-mode: archive
+      jdbc:
+        schema-initialization:
+          enabled: true

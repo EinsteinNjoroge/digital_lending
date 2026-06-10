@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {"events", "loanaccount::repository", "loanaccount::enums"}
+        allowedDependencies = {"events"}
 )
 package com.digital.lending.creditscoring;

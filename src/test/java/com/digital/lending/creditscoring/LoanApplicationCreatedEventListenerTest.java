@@ -1,13 +1,13 @@
 package com.digital.lending.creditscoring;
 
-import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.CreditDecisionResponseDto;
 import com.digital.lending.creditscoring.enums.CreditProfileStatus;
 import com.digital.lending.creditscoring.event.LoanApplicationCreatedEventListener;
 import com.digital.lending.creditscoring.model.CreditProfile;
 import com.digital.lending.creditscoring.service.CreditProfileService;
 import com.digital.lending.creditscoring.service.CreditScoringOrchestrationEngine;
+import com.digital.lending.creditscoring.repository.LoanAccountExposureProjectionRepository;
 import com.digital.lending.events.LoanApplicationApprovedEvent;
-import com.digital.lending.loanaccount.repository.LoanAccountRepository;
 import com.digital.lending.events.LoanApplicationCreatedEvent;
 import com.digital.lending.events.LoanApplicationRejectedEvent;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +38,7 @@ class LoanApplicationCreatedEventListenerTest {
     private CreditProfileService creditProfileService;
 
     @Mock
-    private LoanAccountRepository loanAccountRepository;
+    private LoanAccountExposureProjectionRepository loanAccountExposureProjectionRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -52,9 +52,9 @@ class LoanApplicationCreatedEventListenerTest {
         LoanApplicationCreatedEvent event = sampleEvent();
         when(creditProfileService.findByProfileId("PROF-1")).thenReturn(Optional.of(activeCreditProfile()));
         when(orchestrationEngine.resolveAndEvaluate(any())).thenReturn(
-                new CreditDecisionResponse("123", "APPROVED", 88.0, 5000.0, Map.of("DECISION_REASON", "Approved"))
+                new CreditDecisionResponseDto("123", "APPROVED", 88.0, 5000.0, Map.of("DECISION_REASON", "Approved"))
         );
-        when(loanAccountRepository.sumOutstandingExposure(anyString(), anyString(), any())).thenReturn(BigDecimal.ZERO);
+        when(loanAccountExposureProjectionRepository.sumOutstandingExposure(anyString(), anyString())).thenReturn(BigDecimal.ZERO);
 
         listener.onLoanApplicationCreated(event);
 

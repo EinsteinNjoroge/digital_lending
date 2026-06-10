@@ -1,6 +1,6 @@
 package com.digital.lending.creditscoring;
 
-import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.CreditDecisionResponseDto;
 import com.digital.lending.creditscoring.model.*;
 import com.digital.lending.creditscoring.repository.CreditScoringDecisionLogRepository;
 import com.digital.lending.creditscoring.service.CreditScoringOrchestrationEngine;
@@ -64,7 +64,7 @@ class CreditScoringOrchestrationEngineTest {
         when(evaluationEngine.calculateFeaturePoints(any(FeatureWeightConfig.class), eq(resolvedFeatures)))
                 .thenReturn(65.0);
 
-        CreditDecisionResponse response = orchestrationEngine.evaluateCreditRisk(
+        CreditDecisionResponseDto response = orchestrationEngine.evaluateCreditRisk(
                 txId, "CUST-001", "SAF_KE_01", "KES", "MODEL-V1", resolvedFeatures, sampleRules);
 
         assertThat(response).isNotNull();
@@ -86,7 +86,7 @@ class CreditScoringOrchestrationEngineTest {
 
         when(evaluationEngine.isKnockOutTriggered(eq(koRule), eq(resolvedFeatures))).thenReturn(true);
 
-        CreditDecisionResponse response = orchestrationEngine.evaluateCreditRisk(
+        CreditDecisionResponseDto response = orchestrationEngine.evaluateCreditRisk(
                 txId, "CUST-002", "SAF_KE_01", "KES", "MODEL-V1", resolvedFeatures, sampleRules);
 
         assertThat(response).isNotNull();
@@ -107,7 +107,7 @@ class CreditScoringOrchestrationEngineTest {
         when(evaluationEngine.calculateFeaturePoints(any(FeatureWeightConfig.class), eq(resolvedFeatures)))
                 .thenReturn(30.0);
 
-        CreditDecisionResponse response = orchestrationEngine.evaluateCreditRisk(
+        CreditDecisionResponseDto response = orchestrationEngine.evaluateCreditRisk(
                 txId, "CUST-003", "SAF_KE_01", "KES", "MODEL-V1", resolvedFeatures, sampleRules);
 
         assertThat(response).isNotNull();
@@ -127,7 +127,7 @@ class CreditScoringOrchestrationEngineTest {
         when(evaluationEngine.calculateFeaturePoints(any(FeatureWeightConfig.class), eq(resolvedFeatures)))
                 .thenThrow(new RuntimeException("Telemetry connection lost"));
 
-        CreditDecisionResponse response = orchestrationEngine.evaluateCreditRisk(
+        CreditDecisionResponseDto response = orchestrationEngine.evaluateCreditRisk(
                 txId, "CUST-004", "SAF_KE_01", "KES", "MODEL-V1", resolvedFeatures, sampleRules);
 
         assertThat(response).isNotNull();
@@ -150,7 +150,7 @@ class CreditScoringOrchestrationEngineTest {
         doThrow(new RuntimeException("Database write deadlock exception"))
                 .when(decisionLogRepository).save(any(CreditScoringDecisionLog.class));
 
-        CreditDecisionResponse response = orchestrationEngine.evaluateCreditRisk(
+        CreditDecisionResponseDto response = orchestrationEngine.evaluateCreditRisk(
                 txId, "CUST-005", "SAF_KE_01", "KES", "MODEL-V1", resolvedFeatures, sampleRules);
 
         assertThat(response).isNotNull();

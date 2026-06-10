@@ -6,8 +6,7 @@ import com.digital.lending.events.ProfileRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -20,8 +19,7 @@ public class ProfileRegistrationEventListener {
     private final CreditProfileService creditProfileService;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Async
-    @EventListener
+    @ApplicationModuleListener
     public void onProfileRegistered(ProfileRegisteredEvent event) {
         if (event.profileId() == null || event.profileId().isBlank()) {
             log.warn("Skipping baseline credit profile bootstrap because profileId is missing");

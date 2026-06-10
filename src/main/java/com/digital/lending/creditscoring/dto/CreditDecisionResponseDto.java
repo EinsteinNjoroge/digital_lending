@@ -10,8 +10,8 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "CreditDecisionResponse", description = "The structural output evaluation response detailing the underwriting logic boundaries resolved for the applicant scenario context")
-public class CreditDecisionResponse {
+@Schema(name = "CreditDecisionResponseDto", description = "The structural output evaluation response detailing the underwriting logic boundaries resolved for the applicant scenario context")
+public class CreditDecisionResponseDto {
 
     @Schema(description = "The ID of the persisted decision log entry", example = "12345")
     private String id;

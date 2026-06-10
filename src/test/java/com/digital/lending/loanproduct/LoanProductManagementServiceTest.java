@@ -7,6 +7,7 @@ import com.digital.lending.loanproduct.model.LoanProductConfiguration;
 import com.digital.lending.loanproduct.repository.LoanProductAuditLogRepository;
 import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import com.digital.lending.loanproduct.service.LoanProductManagementService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,9 @@ public class LoanProductManagementServiceTest {
 
     @Mock
     private LoanProductAuditLogRepository auditLogRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private LoanProductManagementService productService;

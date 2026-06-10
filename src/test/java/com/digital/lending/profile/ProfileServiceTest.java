@@ -1,7 +1,7 @@
 package com.digital.lending.profile;
 
 import com.digital.lending.events.ProfileRegisteredEvent;
-import com.digital.lending.profile.dto.CreateProfileRequest;
+import com.digital.lending.profile.dto.CreateProfileRequestDto;
 import com.digital.lending.profile.dto.ProfileDto;
 import com.digital.lending.profile.enums.DocumentType;
 import com.digital.lending.profile.enums.ProfileStatus;
@@ -50,7 +50,7 @@ class ProfileServiceTest {
         @Test
         @DisplayName("Should onboard valid individual profile and publish ProfileRegisteredEvent")
         void shouldOnboardValidIndividualProfile() {
-            CreateProfileRequest.Individual validRequest = individualRequest(
+            CreateProfileRequestDto.Individual validRequest = individualRequest(
                     "alex.njoroge@lending.global",
                     "Alex",
                     "Njoroge",
@@ -76,7 +76,7 @@ class ProfileServiceTest {
             IndividualProfile seed = individualSeed("88888888");
             repository.saveAndFlush(seed);
 
-            CreateProfileRequest.Individual duplicateRequest = individualRequest(
+            CreateProfileRequestDto.Individual duplicateRequest = individualRequest(
                     "second@lending.global",
                     "Second",
                     "User",
@@ -98,7 +98,7 @@ class ProfileServiceTest {
         @Test
         @DisplayName("Should onboard valid corporate profile")
         void shouldOnboardValidCorporateProfile() {
-            CreateProfileRequest.Corporate validRequest = corporateRequest("CPR-2026-XYZ89");
+            CreateProfileRequestDto.Corporate validRequest = corporateRequest("CPR-2026-XYZ89");
 
             ProfileDto result = profileService.createProfile(validRequest);
 
@@ -114,7 +114,7 @@ class ProfileServiceTest {
             CorporateProfile seed = corporateSeed("CPR-2026-UNIQUE");
             repository.saveAndFlush(seed);
 
-            CreateProfileRequest.Corporate duplicateRequest = corporateRequest("CPR-2026-UNIQUE");
+            CreateProfileRequestDto.Corporate duplicateRequest = corporateRequest("CPR-2026-UNIQUE");
 
             assertThrows(DataIntegrityViolationException.class, () -> {
                 profileService.createProfile(duplicateRequest);
@@ -131,7 +131,7 @@ class ProfileServiceTest {
         @Test
         @DisplayName("Should fail when joint identity count mismatches applicant count")
         void shouldThrowExceptionOnJointIdentityCountMismatch() {
-            CreateProfileRequest.Joint request = new CreateProfileRequest.Joint(
+            CreateProfileRequestDto.Joint request = new CreateProfileRequestDto.Joint(
                     "joint@lending.global",
                     "+254",
                     "711222333",
@@ -139,7 +139,7 @@ class ProfileServiceTest {
                     "Alex & Mary Joint Account",
                     "Alex Njoroge",
                     3,
-                    List.of(new CreateProfileRequest.IdentityInput(DocumentType.NATIONAL_ID, "112233"))
+                    List.of(new CreateProfileRequestDto.IdentityInput(DocumentType.NATIONAL_ID, "112233"))
             );
 
             ProfileDomainException ex = assertThrows(ProfileDomainException.class, () -> {
@@ -152,15 +152,15 @@ class ProfileServiceTest {
         }
     }
 
-    private CreateProfileRequest.Individual individualRequest(String email, String first, String last, String idNumber) {
-        return new CreateProfileRequest.Individual(
+    private CreateProfileRequestDto.Individual individualRequest(String email, String first, String last, String idNumber) {
+        return new CreateProfileRequestDto.Individual(
                 email,
                 "+254",
                 "712345678",
                 "KEN",
                 first,
                 last,
-                List.of(new CreateProfileRequest.IdentityInput(DocumentType.NATIONAL_ID, idNumber)),
+                List.of(new CreateProfileRequestDto.IdentityInput(DocumentType.NATIONAL_ID, idNumber)),
                 LocalDate.of(1996, 6, 7)
         );
     }
@@ -180,8 +180,8 @@ class ProfileServiceTest {
         return p;
     }
 
-    private CreateProfileRequest.Corporate corporateRequest(String regNo) {
-        return new CreateProfileRequest.Corporate(
+    private CreateProfileRequestDto.Corporate corporateRequest(String regNo) {
+        return new CreateProfileRequestDto.Corporate(
                 "finance@devcorp.co.ke",
                 "+254",
                 "700111222",
@@ -190,7 +190,7 @@ class ProfileServiceTest {
                 regNo,
                 LocalDate.of(2020, 1, 15),
                 "John Doe",
-                List.of(new CreateProfileRequest.IdentityInput(DocumentType.NATIONAL_ID, "87654321"))
+                List.of(new CreateProfileRequestDto.IdentityInput(DocumentType.NATIONAL_ID, "87654321"))
         );
     }
 

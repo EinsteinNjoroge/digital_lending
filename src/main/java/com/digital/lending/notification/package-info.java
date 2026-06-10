@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {"events", "profile::service", "profile::dto"}
+        allowedDependencies = {"events"}
 )
 package com.digital.lending.notification;
