@@ -1,9 +1,10 @@
 package com.digital.lending.profile.util;
 
 public final class ProfileApiConstants {
-    private ProfileApiConstants() {}
 
-    public static final String GROUP_NAME = "Profile-Management-Module";
+    private ProfileApiConstants() {
+    }
+
     public static final String TAG_NAME = "Profile Management";
     public static final String TAG_DESCRIPTION = "Endpoints for onboarding and managing Individual, Corporate, and Joint profiles.";
     public static final String BASE_PATH = "/api/v1/profiles";

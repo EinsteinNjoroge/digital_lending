@@ -17,6 +17,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LoanAccountSettledEventListener {
 
+    private static final String LOAN_SETTLED_EMAIL_TEMPLATE = "LOAN_SETTLED_EMAIL";
+    private static final String LOAN_SETTLEMENT_LISTENER_ACTOR = "loan-settlement-listener";
+
     private final NotificationService notificationService;
     private final ProfileService profileService;
 
@@ -35,9 +38,9 @@ public class LoanAccountSettledEventListener {
             }
 
             NotificationDispatchRequestDto request = new NotificationDispatchRequestDto();
-            request.setTemplateId("LOAN_SETTLED_EMAIL");
+            request.setTemplateId(LOAN_SETTLED_EMAIL_TEMPLATE);
             request.setDestination(profile.email());
-            request.setActor("loan-settlement-listener");
+            request.setActor(LOAN_SETTLEMENT_LISTENER_ACTOR);
             request.setTemplateVariables(Map.of(
                     "recipientName", profile.displayName(),
                     "accountReference", event.accountReference(),

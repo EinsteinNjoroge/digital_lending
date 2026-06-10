@@ -40,6 +40,10 @@ import java.util.concurrent.ThreadLocalRandom;
 public class LoanAccountManagementService {
 
     private static final String DEFAULT_DISBURSAL_PROVIDER = "INTERNAL";
+    private static final String PAYMENT_STATUS_COMPLETED = "COMPLETED";
+    private static final String PAYMENT_CATEGORY_DISBURSEMENT = "DISBURSEMENT";
+    private static final String PAYMENT_CATEGORY_REPAYMENT = "REPAYMENT";
+    private static final String PAYMENT_EVENT_LISTENER_ACTOR = "payment-event-listener";
 
     private final LoanAccountRepository accountRepository;
     private final LoanAccountAuditLogRepository auditLogRepository;
@@ -175,7 +179,7 @@ public class LoanAccountManagementService {
 
     @Transactional
     public void processPaymentEvent(PaymentEvent paymentEvent) {
-        if (!"COMPLETED".equalsIgnoreCase(paymentEvent.statusId())) {
+        if (!PAYMENT_STATUS_COMPLETED.equalsIgnoreCase(paymentEvent.statusId())) {
             return;
         }
 
@@ -185,12 +189,12 @@ public class LoanAccountManagementService {
             return;
         }
 
-        if ("DISBURSEMENT".equalsIgnoreCase(paymentEvent.categoryId())) {
+        if (PAYMENT_CATEGORY_DISBURSEMENT.equalsIgnoreCase(paymentEvent.categoryId())) {
             activateApprovedLoan(account, paymentEvent);
             return;
         }
 
-        if ("REPAYMENT".equalsIgnoreCase(paymentEvent.categoryId())) {
+        if (PAYMENT_CATEGORY_REPAYMENT.equalsIgnoreCase(paymentEvent.categoryId())) {
             applyRepayment(account, paymentEvent);
         }
     }
@@ -205,7 +209,7 @@ public class LoanAccountManagementService {
         account.setTakenAt(ZonedDateTime.now());
         account.setUpdatedAt(ZonedDateTime.now());
         LoanAccount activated = accountRepository.save(account);
-        writeAuditLog(activated.getId(), "LOAN_DISBURSED", snapshotBefore, activated, paymentEvent.transactionId(), "payment-event-listener");
+        writeAuditLog(activated.getId(), "LOAN_DISBURSED", snapshotBefore, activated, paymentEvent.transactionId(), PAYMENT_EVENT_LISTENER_ACTOR);
     }
 
     private void applyRepayment(LoanAccount account, PaymentEvent paymentEvent) {
@@ -229,7 +233,7 @@ public class LoanAccountManagementService {
         }
 
         LoanAccount saved = accountRepository.save(account);
-        writeAuditLog(saved.getId(), "REPAYMENT_APPLIED", snapshotBefore, saved, paymentEvent.transactionId(), "payment-event-listener");
+        writeAuditLog(saved.getId(), "REPAYMENT_APPLIED", snapshotBefore, saved, paymentEvent.transactionId(), PAYMENT_EVENT_LISTENER_ACTOR);
 
         if (saved.getIssuanceStatus() == IssuanceStatus.SETTLED) {
             eventPublisher.publishEvent(new LoanAccountSettledEvent(

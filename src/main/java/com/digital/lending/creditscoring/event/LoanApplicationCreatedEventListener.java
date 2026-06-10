@@ -27,6 +27,14 @@ import java.util.Optional;
 public class LoanApplicationCreatedEventListener {
 
     private static final BigDecimal MINIMUM_BASELINE_SCORE = new BigDecimal("600.00");
+    private static final String DECISION_OUTCOME_REFERRED = "REFERRED";
+    private static final String DECISION_OUTCOME_DECLINED = "DECLINED";
+    private static final String DECISION_OUTCOME_APPROVED = "APPROVED";
+    private static final String DECISION_REASON_NO_CREDIT_PROFILE = "No operational credit profile was found for the profile.";
+    private static final String DECISION_REASON_INACTIVE_PROFILE = "The credit profile is not active for underwriting.";
+    private static final String DECISION_REASON_SCORE_TOO_LOW = "The baseline credit profile score is below the approval threshold.";
+    private static final String DECISION_REASON_LIMIT_EXCEEDED = "Requested amount exceeds the approved credit limit.";
+    private static final String DECISION_REASON_DEFAULT = "Loan application was not approved by the credit-scoring engine.";
 
     private final CreditScoringOrchestrationEngine orchestrationEngine;
     private final CreditProfileService creditProfileService;
@@ -37,18 +45,18 @@ public class LoanApplicationCreatedEventListener {
     public void onLoanApplicationCreated(LoanApplicationCreatedEvent event) {
         Optional<CreditProfile> optionalCreditProfile = creditProfileService.findByProfileId(event.profileId());
         if (optionalCreditProfile.isEmpty()) {
-            publishRejected(event, null, "REFERRED", "No operational credit profile was found for the profile.", null);
+            publishRejected(event, null, DECISION_OUTCOME_REFERRED, DECISION_REASON_NO_CREDIT_PROFILE, null);
             return;
         }
 
         CreditProfile creditProfile = optionalCreditProfile.get();
         if (creditProfile.getStatus() != CreditProfileStatus.ACTIVE) {
-            publishRejected(event, null, "REFERRED", "The credit profile is not active for underwriting.", null);
+            publishRejected(event, null, DECISION_OUTCOME_REFERRED, DECISION_REASON_INACTIVE_PROFILE, null);
             return;
         }
 
         if (creditProfile.getBaselineScore().compareTo(MINIMUM_BASELINE_SCORE) < 0) {
-            publishRejected(event, null, "DECLINED", "The baseline credit profile score is below the approval threshold.", creditProfile.getBaselineScore().doubleValue());
+            publishRejected(event, null, DECISION_OUTCOME_DECLINED, DECISION_REASON_SCORE_TOO_LOW, creditProfile.getBaselineScore().doubleValue());
             return;
         }
 
@@ -70,7 +78,7 @@ public class LoanApplicationCreatedEventListener {
                 decisionId = decision.getId();
                 evaluatedScore = decision.getScoreCalculated();
 
-                if (!"APPROVED".equalsIgnoreCase(decision.getDecisionOutcome())) {
+                if (!DECISION_OUTCOME_APPROVED.equalsIgnoreCase(decision.getDecisionOutcome())) {
                     publishRejected(event, decisionId, decision.getDecisionOutcome(), extractReason(decision.getEvaluationTrace()), decision.getScoreCalculated());
                     return;
                 }
@@ -78,13 +86,13 @@ public class LoanApplicationCreatedEventListener {
                 approvedLimit = approvedLimit.min(BigDecimal.valueOf(decision.getCreditLimitAllocated()));
             } catch (Exception ex) {
                 log.error("Failed to evaluate dynamic scorecard for loan account {}", event.loanAccountId(), ex);
-                publishRejected(event, decisionId, "REFERRED", ex.getMessage(), evaluatedScore);
+                publishRejected(event, decisionId, DECISION_OUTCOME_REFERRED, ex.getMessage(), evaluatedScore);
                 return;
             }
         }
 
         if (event.requestedPrincipal().compareTo(approvedLimit) > 0) {
-            publishRejected(event, decisionId, "DECLINED", "Requested amount exceeds the approved credit limit.", evaluatedScore);
+            publishRejected(event, decisionId, DECISION_OUTCOME_DECLINED, DECISION_REASON_LIMIT_EXCEEDED, evaluatedScore);
             return;
         }
 
@@ -136,7 +144,7 @@ public class LoanApplicationCreatedEventListener {
 
     private String extractReason(Map<String, String> evaluationTrace) {
         if (evaluationTrace == null || evaluationTrace.isEmpty()) {
-            return "Loan application was not approved by the credit-scoring engine.";
+            return DECISION_REASON_DEFAULT;
         }
         if (evaluationTrace.containsKey("DECISION_REASON")) {
             return evaluationTrace.get("DECISION_REASON");
@@ -147,6 +155,6 @@ public class LoanApplicationCreatedEventListener {
         if (evaluationTrace.containsKey("ENGINE_SYSTEM_ERROR")) {
             return evaluationTrace.get("ENGINE_SYSTEM_ERROR");
         }
-        return "Loan application was not approved by the credit-scoring engine.";
+        return DECISION_REASON_DEFAULT;
     }
 }

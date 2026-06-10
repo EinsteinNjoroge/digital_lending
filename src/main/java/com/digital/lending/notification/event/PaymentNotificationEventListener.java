@@ -17,13 +17,20 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PaymentNotificationEventListener {
 
+    private static final String COMPLETED_STATUS = "COMPLETED";
+    private static final String DISBURSEMENT_CATEGORY = "DISBURSEMENT";
+    private static final String REPAYMENT_CATEGORY = "REPAYMENT";
+    private static final String LOAN_DISBURSED_EMAIL_TEMPLATE = "LOAN_DISBURSED_EMAIL";
+    private static final String REPAYMENT_RECEIVED_EMAIL_TEMPLATE = "REPAYMENT_RECEIVED_EMAIL";
+    private static final String PAYMENT_EVENT_LISTENER_ACTOR = "payment-event-listener";
+
     private final NotificationService notificationService;
     private final ProfileService profileService;
 
     @Async
     @EventListener
     public void onPaymentCompleted(PaymentEvent event) {
-        if (!"COMPLETED".equalsIgnoreCase(event.statusId())) {
+        if (!COMPLETED_STATUS.equalsIgnoreCase(event.statusId())) {
             return;
         }
 
@@ -46,7 +53,7 @@ public class PaymentNotificationEventListener {
             NotificationDispatchRequestDto request = new NotificationDispatchRequestDto();
             request.setTemplateId(templateId);
             request.setDestination(profile.email());
-            request.setActor("payment-event-listener");
+            request.setActor(PAYMENT_EVENT_LISTENER_ACTOR);
             request.setTemplateVariables(Map.of(
                     "recipientName", profile.displayName(),
                     "amount", event.amount().toPlainString(),
@@ -59,11 +66,11 @@ public class PaymentNotificationEventListener {
     }
 
     private String resolveTemplateId(String categoryId) {
-        if ("DISBURSEMENT".equalsIgnoreCase(categoryId)) {
-            return "LOAN_DISBURSED_EMAIL";
+        if (DISBURSEMENT_CATEGORY.equalsIgnoreCase(categoryId)) {
+            return LOAN_DISBURSED_EMAIL_TEMPLATE;
         }
-        if ("REPAYMENT".equalsIgnoreCase(categoryId)) {
-            return "REPAYMENT_RECEIVED_EMAIL";
+        if (REPAYMENT_CATEGORY.equalsIgnoreCase(categoryId)) {
+            return REPAYMENT_RECEIVED_EMAIL_TEMPLATE;
         }
         return null;
     }

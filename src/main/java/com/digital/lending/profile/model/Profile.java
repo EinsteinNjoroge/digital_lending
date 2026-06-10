@@ -2,7 +2,18 @@ package com.digital.lending.profile.model;
 
 import com.digital.lending.profile.enums.ProfileStatus;
 import com.digital.lending.profile.enums.ProfileType;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.DiscriminatorType;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.Column;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.PrePersist;
 import lombok.Getter;
 import lombok.Setter;
 

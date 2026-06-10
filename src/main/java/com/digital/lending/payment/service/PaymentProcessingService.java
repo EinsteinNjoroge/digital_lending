@@ -34,6 +34,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentProcessingService {
 
+    private static final String STATUS_COMPLETED = "COMPLETED";
+    private static final String STATUS_FAILED = "FAILED";
+    private static final String STATUS_REVERSED = "REVERSED";
+    private static final String STATUS_PROCESSING = "PROCESSING";
+    private static final String CATEGORY_DISBURSEMENT = "DISBURSEMENT";
+    private static final String CATEGORY_REPAYMENT = "REPAYMENT";
+    private static final String EXTERNAL_PAYER_REFERENCE = "EXTERNAL_PAYER";
+    private static final String LENDER_TREASURY_REFERENCE = "LENDER_TREASURY";
+    private static final String DYNAMIC_PARTY_TYPE = "EXTERNAL";
+    private static final String DYNAMIC_PARTY_SOURCE_MODULE = "PAYMENT";
+    private static final String CACHED_IDEMPOTENCY_LIMIT_REFERENCE = "CACHED_IDEMPOTENCY_LIMIT";
+
     private final PaymentTransactionRepository transactionRepository;
     private final PaymentPartyRepository partyRepository;
     private final PaymentProviderRepository providerRepository;
@@ -80,7 +92,7 @@ public class PaymentProcessingService {
 
         transaction.setStatusId(normalizedOutcome);
         transaction.setUpdatedAt(request.getCallbackTimestamp());
-        if ("COMPLETED".equals(normalizedOutcome)) {
+        if (STATUS_COMPLETED.equals(normalizedOutcome)) {
             transaction.setCompletedAt(request.getCallbackTimestamp());
         }
 
@@ -90,8 +102,8 @@ public class PaymentProcessingService {
         metadata.setProviderTransactionId(request.getProviderTransactionId());
         metadata.setExternalReferenceNumber(resolveExternalReference(request, metadata));
         metadata.setRawPayloadDump(request.getRawPayload());
-        metadata.setErrorCode("FAILED".equals(normalizedOutcome) ? normalizedOutcome : null);
-        metadata.setErrorMessage("FAILED".equals(normalizedOutcome) ? request.getFailureReason() : null);
+        metadata.setErrorCode(STATUS_FAILED.equals(normalizedOutcome) ? normalizedOutcome : null);
+        metadata.setErrorMessage(STATUS_FAILED.equals(normalizedOutcome) ? request.getFailureReason() : null);
         metadata.setCallbackReceivedAt(request.getCallbackTimestamp());
         if (metadata.getCreatedAt() == null) {
             metadata.setCreatedAt(LocalDateTime.now());
@@ -105,7 +117,7 @@ public class PaymentProcessingService {
     private PaymentResponseDto executeImmediateTransactionFlow(PaymentExecutionRequestDto request) {
         String normalizedCategoryId = request.getCategoryId().toUpperCase();
         String normalizedProviderId = request.getProviderId().toUpperCase();
-        String normalizedStatusId = "COMPLETED";
+        String normalizedStatusId = STATUS_COMPLETED;
 
         validateReferenceData(normalizedCategoryId, normalizedProviderId, normalizedStatusId);
 
@@ -141,7 +153,7 @@ public class PaymentProcessingService {
     private PaymentResponseDto executeGatewayInitiationFlow(PaymentExecutionRequestDto request) {
         String normalizedCategoryId = request.getCategoryId().toUpperCase();
         String normalizedProviderId = request.getProviderId().toUpperCase();
-        String normalizedStatusId = "PROCESSING";
+        String normalizedStatusId = STATUS_PROCESSING;
 
         validateReferenceData(normalizedCategoryId, normalizedProviderId, normalizedStatusId);
 
@@ -187,7 +199,7 @@ public class PaymentProcessingService {
         }
 
         String categoryId = request.getCategoryId() == null || request.getCategoryId().isBlank()
-                ? "REPAYMENT"
+                ? CATEGORY_REPAYMENT
                 : request.getCategoryId().toUpperCase();
         String normalizedOutcome = normalizeCallbackStatus(request.getOutcomeStatus());
         validateReferenceData(categoryId, providerId, normalizedOutcome);
@@ -200,9 +212,9 @@ public class PaymentProcessingService {
         createRequest.setLoanAccountId(null);
         createRequest.setProfileId(request.getProfileId());
         createRequest.setSenderPartyReference(request.getProfileId() == null || request.getProfileId().isBlank()
-                ? "EXTERNAL_PAYER"
+                ? EXTERNAL_PAYER_REFERENCE
                 : request.getProfileId());
-        createRequest.setReceiverPartyReference("LENDER_TREASURY");
+        createRequest.setReceiverPartyReference(LENDER_TREASURY_REFERENCE);
         createRequest.setAmount(request.getAmount());
         createRequest.setCurrency(request.getCurrency());
 
@@ -219,15 +231,15 @@ public class PaymentProcessingService {
                 senderId,
                 receiverId,
                 request.getCallbackTimestamp(),
-                "COMPLETED".equals(normalizedOutcome) ? request.getCallbackTimestamp() : null
+                STATUS_COMPLETED.equals(normalizedOutcome) ? request.getCallbackTimestamp() : null
         ));
 
         PaymentProviderMetadata metadata = newMetadata(saved.getId());
         metadata.setProviderTransactionId(request.getProviderTransactionId());
         metadata.setExternalReferenceNumber(request.getExternalReferenceNumber());
         metadata.setRawPayloadDump(request.getRawPayload());
-        metadata.setErrorCode("FAILED".equals(normalizedOutcome) ? normalizedOutcome : null);
-        metadata.setErrorMessage("FAILED".equals(normalizedOutcome) ? request.getFailureReason() : null);
+        metadata.setErrorCode(STATUS_FAILED.equals(normalizedOutcome) ? normalizedOutcome : null);
+        metadata.setErrorMessage(STATUS_FAILED.equals(normalizedOutcome) ? request.getFailureReason() : null);
         metadata.setCallbackReceivedAt(request.getCallbackTimestamp());
         metadata.setCreatedAt(LocalDateTime.now());
         metadataRepository.save(metadata);
@@ -294,8 +306,8 @@ public class PaymentProcessingService {
                     dynamicParty.setId("part_" + UUID.randomUUID().toString().replace("-", ""));
                     dynamicParty.setPartyReference(reference);
                     dynamicParty.setDisplayName("Automated Party Mapping: " + reference);
-                    dynamicParty.setPartyType("EXTERNAL");
-                    dynamicParty.setSourceModule("PAYMENT");
+                    dynamicParty.setPartyType(DYNAMIC_PARTY_TYPE);
+                    dynamicParty.setSourceModule(DYNAMIC_PARTY_SOURCE_MODULE);
                     dynamicParty.setCreatedAt(now);
                     dynamicParty.setUpdatedAt(now);
                     return partyRepository.save(dynamicParty).getId();
@@ -315,12 +327,14 @@ public class PaymentProcessingService {
     }
 
     private boolean isTerminalStatus(String statusId) {
-        return "COMPLETED".equalsIgnoreCase(statusId) || "FAILED".equalsIgnoreCase(statusId) || "REVERSED".equalsIgnoreCase(statusId);
+        return STATUS_COMPLETED.equalsIgnoreCase(statusId)
+                || STATUS_FAILED.equalsIgnoreCase(statusId)
+                || STATUS_REVERSED.equalsIgnoreCase(statusId);
     }
 
     private String normalizeCallbackStatus(String outcomeStatus) {
         String normalized = outcomeStatus.toUpperCase();
-        if (!normalized.equals("COMPLETED") && !normalized.equals("FAILED")) {
+        if (!normalized.equals(STATUS_COMPLETED) && !normalized.equals(STATUS_FAILED)) {
             throw new IllegalArgumentException("Unsupported callback outcome status: " + outcomeStatus);
         }
         return normalized;
@@ -333,7 +347,8 @@ public class PaymentProcessingService {
 
         publishPaymentEvent(transaction, metadata.getExternalReferenceNumber());
 
-        if ("DISBURSEMENT".equalsIgnoreCase(transaction.getCategoryId()) && "COMPLETED".equalsIgnoreCase(transaction.getStatusId())) {
+        if (CATEGORY_DISBURSEMENT.equalsIgnoreCase(transaction.getCategoryId())
+                && STATUS_COMPLETED.equalsIgnoreCase(transaction.getStatusId())) {
             eventPublisher.publishEvent(new ProviderPayoutCompletedEvent(
                     transaction.getLoanAccountId(),
                     transaction.getId(),
@@ -404,7 +419,7 @@ public class PaymentProcessingService {
     private PaymentResponseDto mapToResponseDto(PaymentTransaction tx) {
         String externalReference = metadataRepository.findByTransactionId(tx.getId())
                 .map(PaymentProviderMetadata::getExternalReferenceNumber)
-                .orElse("CACHED_IDEMPOTENCY_LIMIT");
+                .orElse(CACHED_IDEMPOTENCY_LIMIT_REFERENCE);
         return toResponseDto(tx, externalReference);
     }
 

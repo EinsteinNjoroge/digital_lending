@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+
+    <module name="TreeWalker">
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="System\.(out|err)\.print(ln)?\("/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Use SLF4J logging instead of System.out/System.err."/>
+        </module>
+        <module name="UnusedImports"/>
+        <module name="RedundantImport"/>
+        <module name="ConstantName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="MethodName"/>
+        <module name="ParameterName"/>
+        <module name="TypeName"/>
+    </module>
+</module>
