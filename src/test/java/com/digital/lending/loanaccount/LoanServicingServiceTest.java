@@ -6,11 +6,11 @@ import com.digital.lending.loanaccount.enums.IssuanceStatus;
 import com.digital.lending.loanaccount.enums.PerformanceStatus;
 import com.digital.lending.loanaccount.model.LoanAccount;
 import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
+import com.digital.lending.loanaccount.model.LoanProductConfigurationProjection;
 import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
 import com.digital.lending.loanaccount.repository.LoanAccountRepository;
+import com.digital.lending.loanaccount.repository.LoanProductConfigurationProjectionRepository;
 import com.digital.lending.loanaccount.service.LoanServicingService;
-import com.digital.lending.loanproduct.model.LoanProductConfiguration;
-import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +46,7 @@ class LoanServicingServiceTest {
     private LoanAccountAuditLogRepository loanAccountAuditLogRepository;
 
     @Mock
-    private LoanProductConfigurationRepository loanProductConfigurationRepository;
+    private LoanProductConfigurationProjectionRepository loanProductConfigurationProjectionRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -73,8 +73,8 @@ class LoanServicingServiceTest {
         when(loanAccountRepository.findServicingCandidates(anyCollection(), anyCollection(), any(ZonedDateTime.class)))
                 .thenReturn(List.of(watchLoan, doubtfulLoan));
         when(loanAccountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(loanProductConfigurationRepository.findById("prod_001")).thenReturn(Optional.of(product("prod_001", "KES")));
-        when(loanProductConfigurationRepository.findById("prod_003")).thenReturn(Optional.of(product("prod_003", "KES")));
+        when(loanProductConfigurationProjectionRepository.findById("prod_001")).thenReturn(Optional.of(product("prod_001", "KES")));
+        when(loanProductConfigurationProjectionRepository.findById("prod_003")).thenReturn(Optional.of(product("prod_003", "KES")));
 
         LoanServicingRunResponseDto response = loanServicingService.runServicing("test");
 
@@ -103,9 +103,9 @@ class LoanServicingServiceTest {
         return loan;
     }
 
-    private LoanProductConfiguration product(String id, String currency) {
-        LoanProductConfiguration product = new LoanProductConfiguration();
-        product.setId(id);
+    private LoanProductConfigurationProjection product(String id, String currency) {
+        LoanProductConfigurationProjection product = new LoanProductConfigurationProjection();
+        product.setLoanProductId(id);
         product.setCurrency(currency);
         return product;
     }

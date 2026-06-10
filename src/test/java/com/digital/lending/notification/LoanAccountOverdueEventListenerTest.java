@@ -3,9 +3,9 @@ package com.digital.lending.notification;
 import com.digital.lending.events.LoanAccountOverdueEvent;
 import com.digital.lending.notification.dto.NotificationDispatchRequestDto;
 import com.digital.lending.notification.event.LoanAccountOverdueEventListener;
+import com.digital.lending.notification.model.ProfileContactProjection;
+import com.digital.lending.notification.repository.ProfileContactProjectionRepository;
 import com.digital.lending.notification.service.NotificationService;
-import com.digital.lending.profile.dto.ProfileDto;
-import com.digital.lending.profile.service.ProfileService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,7 +31,7 @@ class LoanAccountOverdueEventListenerTest {
     private NotificationService notificationService;
 
     @Mock
-    private ProfileService profileService;
+    private ProfileContactProjectionRepository profileContactProjectionRepository;
 
     @InjectMocks
     private LoanAccountOverdueEventListener listener;
@@ -40,9 +39,7 @@ class LoanAccountOverdueEventListenerTest {
     @Test
     @DisplayName("Should dispatch overdue notification with servicing status details")
     void shouldDispatchOverdueNotification() {
-        when(profileService.findProfileById("prof_burgundy_001")).thenReturn(Optional.of(new ProfileDto(
-                "prof_burgundy_001", "INDIVIDUAL", "burgundy.evolution@gmail.com", "+254", "711223344", "KEN", "ACTIVE", "Burgundy Evolution", List.of(), Instant.now()
-        )));
+        when(profileContactProjectionRepository.findById("prof_burgundy_001")).thenReturn(Optional.of(profile("prof_burgundy_001", "Burgundy Evolution", "burgundy.evolution@gmail.com")));
 
         listener.onLoanAccountOverdue(new LoanAccountOverdueEvent(
                 "acc_burgundy_001",
@@ -66,7 +63,7 @@ class LoanAccountOverdueEventListenerTest {
     @Test
     @DisplayName("Should ignore overdue event when profile is missing")
     void shouldIgnoreOverdueEventWhenProfileMissing() {
-        when(profileService.findProfileById("prof_missing")).thenReturn(Optional.empty());
+        when(profileContactProjectionRepository.findById("prof_missing")).thenReturn(Optional.empty());
 
         listener.onLoanAccountOverdue(new LoanAccountOverdueEvent(
                 "acc_missing",
@@ -79,7 +76,17 @@ class LoanAccountOverdueEventListenerTest {
                 ZonedDateTime.parse("2026-06-10T12:30:00Z")
         ));
 
-        verify(profileService).findProfileById("prof_missing");
+        verify(profileContactProjectionRepository).findById("prof_missing");
         verifyNoInteractions(notificationService);
+    }
+
+    private ProfileContactProjection profile(String id, String displayName, String email) {
+        ProfileContactProjection projection = new ProfileContactProjection();
+        projection.setProfileId(id);
+        projection.setDisplayName(displayName);
+        projection.setEmail(email);
+        projection.setStatus("ACTIVE");
+        projection.setUpdatedAt(Instant.now());
+        return projection;
     }
 }

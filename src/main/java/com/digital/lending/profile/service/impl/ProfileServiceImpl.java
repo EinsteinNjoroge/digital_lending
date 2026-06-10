@@ -1,10 +1,11 @@
 package com.digital.lending.profile.service.impl;
 
 import com.digital.lending.events.ProfileRegisteredEvent;
-import com.digital.lending.profile.dto.CreateProfileRequest;
+import com.digital.lending.events.ProfileUpdatedEvent;
+import com.digital.lending.profile.dto.CreateProfileRequestDto;
 import com.digital.lending.profile.dto.IdentityDto;
 import com.digital.lending.profile.dto.ProfileDto;
-import com.digital.lending.profile.dto.UpdateProfileRequest;
+import com.digital.lending.profile.dto.UpdateProfileRequestDto;
 import com.digital.lending.profile.enums.ProfileStatus;
 import com.digital.lending.profile.exception.DuplicateIdentityException;
 import com.digital.lending.profile.exception.IdentityRequiredException;
@@ -40,13 +41,13 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
-    public ProfileDto createProfile(CreateProfileRequest request) {
+    public ProfileDto createProfile(CreateProfileRequestDto request) {
         if (repository.existsByEmail(request.email())) {
             throw new DuplicateIdentityException("email", request.email());
         }
 
         Profile profile = switch (request) {
-            case CreateProfileRequest.Individual ind -> {
+            case CreateProfileRequestDto.Individual ind -> {
                 if (ind.identities() == null || ind.identities().isEmpty()) {
                     throw new IdentityRequiredException();
                 }
@@ -64,7 +65,7 @@ public class ProfileServiceImpl implements ProfileService {
                 individual.setIdentities(docs);
                 yield individual;
             }
-            case CreateProfileRequest.Corporate corp -> {
+            case CreateProfileRequestDto.Corporate corp -> {
                 if (corp.directorIdentities() == null || corp.directorIdentities().isEmpty()) {
                     throw new ProfileDomainException("DIRECTORS_IDENTITY_REQUIRED", "Corporate registrations require identity documents for all directors.") {};
                 }
@@ -83,7 +84,7 @@ public class ProfileServiceImpl implements ProfileService {
                 corporate.setDirectorIdentities(docs);
                 yield corporate;
             }
-            case CreateProfileRequest.Joint jointReq -> {
+            case CreateProfileRequestDto.Joint jointReq -> {
                 if (jointReq.applicantIdentities() == null || jointReq.applicantIdentities().size() != jointReq.numberOfApplicants()) {
                     throw new ProfileDomainException("JOINT_IDENTITIES_MISMATCH", "The provided document list count must match the total number of applicants.") {};
                 }
@@ -145,7 +146,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional
-    public ProfileDto updateProfile(String id, UpdateProfileRequest request) {
+    public ProfileDto updateProfile(String id, UpdateProfileRequestDto request) {
         Profile profile = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Profile not found with ID: " + id));
 
@@ -158,7 +159,18 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setPhoneNationalNumber(request.phoneNationalNumber());
         profile.setResidenceCountry(request.residenceCountry().toUpperCase());
 
-        return mapToDto(repository.save(profile));
+        Profile savedProfile = repository.save(profile);
+        eventPublisher.publishEvent(new ProfileUpdatedEvent(
+                savedProfile.getId(),
+                savedProfile.getProfileType().name(),
+                savedProfile.getDisplayName(),
+                savedProfile.getEmail(),
+                savedProfile.getPhoneCountryCode() + savedProfile.getPhoneNationalNumber(),
+                savedProfile.getResidenceCountry(),
+                Instant.now()
+        ));
+
+        return mapToDto(savedProfile);
     }
 
     @Override

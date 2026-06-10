@@ -1,7 +1,7 @@
 package com.digital.lending.profile;
 
 import com.digital.lending.profile.controller.ProfileController;
-import com.digital.lending.profile.dto.CreateProfileRequest;
+import com.digital.lending.profile.dto.CreateProfileRequestDto;
 import com.digital.lending.profile.service.ProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -114,8 +114,8 @@ class ProfileControllerTest {
         @Test
         @DisplayName("Should fail validation when individual profile has no identities")
         void shouldFailWhenIndividualHasNoIdentities() throws Exception {
-            CreateProfileRequest.Individual invalidRequest =
-                    new CreateProfileRequest.Individual(
+            CreateProfileRequestDto.Individual invalidRequest =
+                    new CreateProfileRequestDto.Individual(
                             "test@lending.global",
                             "+254",
                             "712345678",

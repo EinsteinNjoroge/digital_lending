@@ -1,8 +1,8 @@
 package com.digital.lending.profile.controller;
 
-import com.digital.lending.profile.dto.CreateProfileRequest;
+import com.digital.lending.profile.dto.CreateProfileRequestDto;
 import com.digital.lending.profile.dto.ProfileDto;
-import com.digital.lending.profile.dto.UpdateProfileRequest;
+import com.digital.lending.profile.dto.UpdateProfileRequestDto;
 import com.digital.lending.profile.exception.ApiErrorResponse;
 import com.digital.lending.profile.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,7 +60,7 @@ public class ProfileController {
     @ApiResponse(responseCode = "400", description = RESPONSE_400_BAD_REQUEST_DESCRIPTION, content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "409", description = RESPONSE_409_CONFLICT_DESCRIPTION, content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     @ApiResponse(responseCode = "422", description = RESPONSE_422_UNPROCESSABLE_DESCRIPTION, content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
-    public ResponseEntity<ProfileDto> createProfile(@Valid @RequestBody CreateProfileRequest request) {
+    public ResponseEntity<ProfileDto> createProfile(@Valid @RequestBody CreateProfileRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(profileService.createProfile(request));
     }
 
@@ -83,7 +83,7 @@ public class ProfileController {
     @PutMapping(PATH_VARIABLE_ID)
     @Operation(summary = SUMMARY_UPDATE_PROFILE_CONTACT)
     @ApiResponse(responseCode = "200", description = RESPONSE_200_UPDATED_DESCRIPTION)
-    public ResponseEntity<ProfileDto> updateProfile(@PathVariable String id, @Valid @RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<ProfileDto> updateProfile(@PathVariable String id, @Valid @RequestBody UpdateProfileRequestDto request) {
         return ResponseEntity.ok(profileService.updateProfile(id, request));
     }
 

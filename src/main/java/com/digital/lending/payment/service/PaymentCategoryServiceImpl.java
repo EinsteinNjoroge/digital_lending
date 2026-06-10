@@ -1,7 +1,7 @@
 package com.digital.lending.payment.service;
 
-import com.digital.lending.payment.dto.PaymentCategoryRequest;
-import com.digital.lending.payment.dto.PaymentCategoryResponse;
+import com.digital.lending.payment.dto.PaymentCategoryRequestDto;
+import com.digital.lending.payment.dto.PaymentCategoryResponseDto;
 import com.digital.lending.payment.model.PaymentCategory;
 import com.digital.lending.payment.repository.PaymentCategoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ public class PaymentCategoryServiceImpl implements PaymentCategoryService {
     private final PaymentCategoryRepository repository;
 
     @Override
-    public PaymentCategoryResponse create(PaymentCategoryRequest request) {
+    public PaymentCategoryResponseDto create(PaymentCategoryRequestDto request) {
 
         PaymentCategory entity = PaymentCategory.builder()
                 .id(request.id())
@@ -32,19 +32,19 @@ public class PaymentCategoryServiceImpl implements PaymentCategoryService {
     }
 
     @Override
-    public PaymentCategoryResponse get(String id) {
+    public PaymentCategoryResponseDto get(String id) {
         return repository.findById(id)
                 .map(this::toResponse)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
     }
 
     @Override
-    public List<PaymentCategoryResponse> getAll() {
+    public List<PaymentCategoryResponseDto> getAll() {
         return repository.findAll().stream().map(this::toResponse).toList();
     }
 
     @Override
-    public PaymentCategoryResponse update(String id, PaymentCategoryRequest request) {
+    public PaymentCategoryResponseDto update(String id, PaymentCategoryRequestDto request) {
         PaymentCategory entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
@@ -59,8 +59,8 @@ public class PaymentCategoryServiceImpl implements PaymentCategoryService {
         repository.deleteById(id);
     }
 
-    private PaymentCategoryResponse toResponse(PaymentCategory e) {
-        return new PaymentCategoryResponse(
+    private PaymentCategoryResponseDto toResponse(PaymentCategory e) {
+        return new PaymentCategoryResponseDto(
                 e.getId(),
                 e.getName(),
                 e.getDescription(),

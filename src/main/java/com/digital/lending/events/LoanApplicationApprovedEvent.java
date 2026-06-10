@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 
 public record LoanApplicationApprovedEvent(
         String loanAccountId,
+        String accountReference,
         String decisionId,
         String profileId,
         String loanProductId,

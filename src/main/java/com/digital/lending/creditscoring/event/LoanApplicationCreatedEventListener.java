@@ -1,21 +1,19 @@
 package com.digital.lending.creditscoring.event;
 
-import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.CreditDecisionResponseDto;
 import com.digital.lending.creditscoring.dto.ScoringRequestDto;
 import com.digital.lending.creditscoring.enums.CreditProfileStatus;
 import com.digital.lending.creditscoring.model.CreditProfile;
+import com.digital.lending.creditscoring.repository.LoanAccountExposureProjectionRepository;
 import com.digital.lending.creditscoring.service.CreditProfileService;
 import com.digital.lending.creditscoring.service.CreditScoringOrchestrationEngine;
 import com.digital.lending.events.LoanApplicationApprovedEvent;
 import com.digital.lending.events.LoanApplicationCreatedEvent;
 import com.digital.lending.events.LoanApplicationRejectedEvent;
-import com.digital.lending.loanaccount.enums.IssuanceStatus;
-import com.digital.lending.loanaccount.repository.LoanAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -41,11 +39,10 @@ public class LoanApplicationCreatedEventListener {
 
     private final CreditScoringOrchestrationEngine orchestrationEngine;
     private final CreditProfileService creditProfileService;
-    private final LoanAccountRepository loanAccountRepository;
+    private final LoanAccountExposureProjectionRepository loanAccountExposureProjectionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Async
-    @EventListener
+    @ApplicationModuleListener
     public void onLoanApplicationCreated(LoanApplicationCreatedEvent event) {
         Optional<CreditProfile> optionalCreditProfile = creditProfileService.findByProfileId(event.profileId());
         if (optionalCreditProfile.isEmpty()) {
@@ -78,7 +75,7 @@ public class LoanApplicationCreatedEventListener {
                 scoringRequest.setLoanProductId(event.loanProductId());
                 scoringRequest.setFeatures(Map.copyOf(event.scoringFeatures()));
 
-                CreditDecisionResponse decision = orchestrationEngine.resolveAndEvaluate(scoringRequest);
+                CreditDecisionResponseDto decision = orchestrationEngine.resolveAndEvaluate(scoringRequest);
                 decisionId = decision.getId();
                 evaluatedScore = decision.getScoreCalculated();
 
@@ -100,10 +97,9 @@ public class LoanApplicationCreatedEventListener {
             return;
         }
 
-        BigDecimal existingExposure = loanAccountRepository.sumOutstandingExposure(
+        BigDecimal existingExposure = loanAccountExposureProjectionRepository.sumOutstandingExposure(
                 event.profileId(),
-                event.loanAccountId(),
-                java.util.List.of(IssuanceStatus.APPROVED, IssuanceStatus.ACTIVE)
+                event.loanAccountId()
         );
         if (existingExposure.add(event.requestedPrincipal()).compareTo(approvedLimit) > 0) {
             publishRejected(event, decisionId, DECISION_OUTCOME_DECLINED, DECISION_REASON_PORTFOLIO_EXPOSURE_EXCEEDED, evaluatedScore);
@@ -112,6 +108,7 @@ public class LoanApplicationCreatedEventListener {
 
         eventPublisher.publishEvent(new LoanApplicationApprovedEvent(
                 event.loanAccountId(),
+                null,
                 decisionId,
                 event.profileId(),
                 event.loanProductId(),

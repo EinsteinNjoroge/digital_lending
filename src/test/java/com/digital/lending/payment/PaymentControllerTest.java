@@ -2,8 +2,8 @@ package com.digital.lending.payment;
 
 import com.digital.lending.payment.controller.PaymentCategoryController;
 import com.digital.lending.payment.controller.PaymentController;
-import com.digital.lending.payment.dto.PaymentCategoryRequest;
-import com.digital.lending.payment.dto.PaymentCategoryResponse;
+import com.digital.lending.payment.dto.PaymentCategoryRequestDto;
+import com.digital.lending.payment.dto.PaymentCategoryResponseDto;
 import com.digital.lending.payment.dto.PaymentExecutionRequestDto;
 import com.digital.lending.payment.dto.PaymentProviderCallbackRequestDto;
 import com.digital.lending.payment.dto.PaymentResponseDto;
@@ -264,10 +264,10 @@ class PaymentControllerTest {
         @Test
         @DisplayName("Should create category successfully")
         void shouldCreateCategorySuccessfully() throws Exception {
-            PaymentCategoryRequest request = new PaymentCategoryRequest("REPAYMENT", "Loan Repayment", "Repayment category");
-            PaymentCategoryResponse response = new PaymentCategoryResponse("REPAYMENT", "Loan Repayment", "Repayment category", Instant.now());
+            PaymentCategoryRequestDto request = new PaymentCategoryRequestDto("REPAYMENT", "Loan Repayment", "Repayment category");
+            PaymentCategoryResponseDto response = new PaymentCategoryResponseDto("REPAYMENT", "Loan Repayment", "Repayment category", Instant.now());
 
-            when(paymentCategoryService.create(any(PaymentCategoryRequest.class))).thenReturn(response);
+            when(paymentCategoryService.create(any(PaymentCategoryRequestDto.class))).thenReturn(response);
 
             mockMvc.perform(post("/api/v1/payment/categories")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -280,7 +280,7 @@ class PaymentControllerTest {
         @Test
         @DisplayName("Should reject category creation when id is blank")
         void shouldRejectCategoryCreationWhenIdBlank() throws Exception {
-            PaymentCategoryRequest request = new PaymentCategoryRequest("", "Loan Repayment", "Repayment category");
+            PaymentCategoryRequestDto request = new PaymentCategoryRequestDto("", "Loan Repayment", "Repayment category");
 
             mockMvc.perform(post("/api/v1/payment/categories")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -293,7 +293,7 @@ class PaymentControllerTest {
         @Test
         @DisplayName("Should fetch category by id")
         void shouldFetchCategoryById() throws Exception {
-            PaymentCategoryResponse response = new PaymentCategoryResponse("REPAYMENT", "Loan Repayment", "Repayment category", Instant.now());
+            PaymentCategoryResponseDto response = new PaymentCategoryResponseDto("REPAYMENT", "Loan Repayment", "Repayment category", Instant.now());
             when(paymentCategoryService.get("REPAYMENT")).thenReturn(response);
 
             mockMvc.perform(get("/api/v1/payment/categories/REPAYMENT"))
@@ -315,7 +315,7 @@ class PaymentControllerTest {
         @DisplayName("Should list all categories")
         void shouldListAllCategories() throws Exception {
             when(paymentCategoryService.getAll()).thenReturn(List.of(
-                    new PaymentCategoryResponse("REPAYMENT", "Loan Repayment", "Repayment category", Instant.now())
+                    new PaymentCategoryResponseDto("REPAYMENT", "Loan Repayment", "Repayment category", Instant.now())
             ));
 
             mockMvc.perform(get("/api/v1/payment/categories"))
@@ -326,10 +326,10 @@ class PaymentControllerTest {
         @Test
         @DisplayName("Should update category successfully")
         void shouldUpdateCategorySuccessfully() throws Exception {
-            PaymentCategoryRequest request = new PaymentCategoryRequest("REPAYMENT", "Loan Repayment Updated", "Updated repayment category");
-            PaymentCategoryResponse response = new PaymentCategoryResponse("REPAYMENT", "Loan Repayment Updated", "Updated repayment category", Instant.now());
+            PaymentCategoryRequestDto request = new PaymentCategoryRequestDto("REPAYMENT", "Loan Repayment Updated", "Updated repayment category");
+            PaymentCategoryResponseDto response = new PaymentCategoryResponseDto("REPAYMENT", "Loan Repayment Updated", "Updated repayment category", Instant.now());
 
-            when(paymentCategoryService.update(eq("REPAYMENT"), any(PaymentCategoryRequest.class))).thenReturn(response);
+            when(paymentCategoryService.update(eq("REPAYMENT"), any(PaymentCategoryRequestDto.class))).thenReturn(response);
 
             mockMvc.perform(put("/api/v1/payment/categories/REPAYMENT")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -350,9 +350,9 @@ class PaymentControllerTest {
         @Test
         @DisplayName("Should return conflict on category duplicate collision")
         void shouldReturnConflictOnCategoryDuplicateCollision() throws Exception {
-            PaymentCategoryRequest request = new PaymentCategoryRequest("REPAYMENT", "Loan Repayment", "Repayment category");
+            PaymentCategoryRequestDto request = new PaymentCategoryRequestDto("REPAYMENT", "Loan Repayment", "Repayment category");
             doThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"))
-                    .when(paymentCategoryService).create(any(PaymentCategoryRequest.class));
+                    .when(paymentCategoryService).create(any(PaymentCategoryRequestDto.class));
 
             mockMvc.perform(post("/api/v1/payment/categories")
                             .contentType(MediaType.APPLICATION_JSON)

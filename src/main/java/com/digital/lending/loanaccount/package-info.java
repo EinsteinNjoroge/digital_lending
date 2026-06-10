@@ -1,4 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {"events", "loanproduct::repository", "loanproduct::model"}
+        allowedDependencies = {"events"}
 )
 package com.digital.lending.loanaccount;

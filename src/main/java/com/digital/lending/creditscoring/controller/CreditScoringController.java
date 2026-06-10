@@ -1,6 +1,6 @@
 package com.digital.lending.creditscoring.controller;
 
-import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.CreditDecisionResponseDto;
 import com.digital.lending.creditscoring.dto.CreditScoringModelRequestDto;
 import com.digital.lending.creditscoring.dto.CreditScoringModelResponseDto;
 import com.digital.lending.creditscoring.dto.ScoringRequestDto;
@@ -42,12 +42,12 @@ public class CreditScoringController {
             description = "Evaluates supplied features against the active scorecard for the selected product."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CreditDecisionResponse.class))),
+                @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CreditDecisionResponseDto.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "500", content = @Content(mediaType = "application/json"))
     })
-    public ResponseEntity<CreditDecisionResponse> evaluateProfileRisk(@Valid @RequestBody ScoringRequestDto request) {
+    public ResponseEntity<CreditDecisionResponseDto> evaluateProfileRisk(@Valid @RequestBody ScoringRequestDto request) {
         return ResponseEntity.ok(orchestrationEngine.resolveAndEvaluate(request));
     }
 

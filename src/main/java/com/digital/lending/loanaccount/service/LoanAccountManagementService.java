@@ -1,5 +1,6 @@
 package com.digital.lending.loanaccount.service;
 
+import com.digital.lending.events.LoanAccountExposureChangedEvent;
 import com.digital.lending.events.LoanAccountSettledEvent;
 import com.digital.lending.events.LoanApplicationApprovedEvent;
 import com.digital.lending.events.LoanApplicationCreatedEvent;
@@ -17,8 +18,7 @@ import com.digital.lending.loanaccount.model.LoanAccount;
 import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
 import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
 import com.digital.lending.loanaccount.repository.LoanAccountRepository;
-import com.digital.lending.loanproduct.model.LoanProductConfiguration;
-import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
+import com.digital.lending.loanaccount.repository.LoanProductConfigurationProjectionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +51,7 @@ public class LoanAccountManagementService {
 
     private final LoanAccountRepository accountRepository;
     private final LoanAccountAuditLogRepository auditLogRepository;
-    private final LoanProductConfigurationRepository loanProductConfigurationRepository;
+    private final LoanProductConfigurationProjectionRepository loanProductConfigurationProjectionRepository;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -138,6 +138,7 @@ public class LoanAccountManagementService {
 
         LoanAccount approvedAccount = accountRepository.save(account);
         writeAuditLog(approvedAccount.getId(), "LOAN_APPLICATION_APPROVED", previousSnapshot, approvedAccount, approvalEvent.decisionId(), approvalEvent.actor());
+        publishExposureChangedEvent(approvedAccount, IssuanceStatus.APPROVED, approvedAccount.getOutstandingPrincipal(), ZonedDateTime.now());
 
         eventPublisher.publishEvent(new LoanDisbursalRequestedEvent(
                 approvedAccount.getId(),
@@ -220,6 +221,7 @@ public class LoanAccountManagementService {
         account.setUpdatedAt(activationTime);
         LoanAccount activated = accountRepository.save(account);
         writeAuditLog(activated.getId(), "LOAN_DISBURSED", snapshotBefore, activated, paymentEvent.transactionId(), PAYMENT_EVENT_LISTENER_ACTOR);
+        publishExposureChangedEvent(activated, IssuanceStatus.ACTIVE, activated.getOutstandingPrincipal(), activationTime);
     }
 
     private void applyRepayment(LoanAccount account, PaymentEvent paymentEvent) {
@@ -246,6 +248,7 @@ public class LoanAccountManagementService {
 
         LoanAccount saved = accountRepository.save(account);
         writeAuditLog(saved.getId(), "REPAYMENT_APPLIED", snapshotBefore, saved, paymentEvent.transactionId(), PAYMENT_EVENT_LISTENER_ACTOR);
+        publishExposureChangedEvent(saved, saved.getIssuanceStatus(), saved.getOutstandingPrincipal(), ZonedDateTime.now());
 
         if (saved.getIssuanceStatus() == IssuanceStatus.SETTLED) {
             eventPublisher.publishEvent(new LoanAccountSettledEvent(
@@ -335,40 +338,20 @@ public class LoanAccountManagementService {
     }
 
     private ZonedDateTime resolveRepaymentDueAt(String loanProductId, ZonedDateTime activationTime) {
-        return loanProductConfigurationRepository.findById(loanProductId)
-                .map(this::resolveRepaymentDueDays)
+        return loanProductConfigurationProjectionRepository.findById(loanProductId)
+                .map(projection -> projection.getRepaymentDueDays())
                 .map(activationTime::plusDays)
                 .orElse(activationTime.plusDays(DEFAULT_REPAYMENT_DUE_DAYS));
     }
 
-    private long resolveRepaymentDueDays(LoanProductConfiguration productConfiguration) {
-        Map<String, String> parameters = productConfiguration.getParameters().stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        parameter -> parameter.getParameterKey().toLowerCase(),
-                        parameter -> parameter.getParameterValue(),
-                        (first, second) -> first));
-
-        return firstNumericValue(parameters,
-                "repayment_due_days",
-                "max_tenor_days",
-                "review_cycle_days",
-                "season_length_days",
-                "merchant_settlement_delay_days")
-                .orElse((long) DEFAULT_REPAYMENT_DUE_DAYS);
-    }
-
-    private java.util.Optional<Long> firstNumericValue(Map<String, String> parameters, String... keys) {
-        for (String key : keys) {
-            String value = parameters.get(key);
-            if (value == null || value.isBlank()) {
-                continue;
-            }
-            try {
-                return java.util.Optional.of(Long.parseLong(value));
-            } catch (NumberFormatException ex) {
-                log.warn("Ignoring non-numeric loan product parameter {}={} while resolving repayment due date", key, value);
-            }
-        }
-        return java.util.Optional.empty();
+    private void publishExposureChangedEvent(LoanAccount account, IssuanceStatus issuanceStatus, BigDecimal outstandingPrincipal, ZonedDateTime occurredAt) {
+        eventPublisher.publishEvent(new LoanAccountExposureChangedEvent(
+                account.getId(),
+                account.getProfileId(),
+                account.getAccountNumber(),
+                outstandingPrincipal == null ? BigDecimal.ZERO : outstandingPrincipal,
+                issuanceStatus.name(),
+                occurredAt
+        ));
     }
 }

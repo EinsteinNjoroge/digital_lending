@@ -2,12 +2,11 @@ package com.digital.lending.notification.event;
 
 import com.digital.lending.events.LoanAccountOverdueEvent;
 import com.digital.lending.notification.dto.NotificationDispatchRequestDto;
+import com.digital.lending.notification.repository.ProfileContactProjectionRepository;
 import com.digital.lending.notification.service.NotificationService;
-import com.digital.lending.profile.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -21,28 +20,27 @@ public class LoanAccountOverdueEventListener {
     private static final String OVERDUE_NOTIFICATION_ACTOR = "loan-servicing-listener";
 
     private final NotificationService notificationService;
-    private final ProfileService profileService;
+    private final ProfileContactProjectionRepository profileContactProjectionRepository;
 
-    @Async
-    @EventListener
+    @ApplicationModuleListener
     public void onLoanAccountOverdue(LoanAccountOverdueEvent event) {
         if (event.profileId() == null || event.profileId().isBlank()) {
             log.warn("Skipping overdue notification because profileId is missing");
             return;
         }
 
-        profileService.findProfileById(event.profileId()).ifPresentOrElse(profile -> {
-            if (profile.email() == null || profile.email().isBlank()) {
+        profileContactProjectionRepository.findById(event.profileId()).ifPresentOrElse(profile -> {
+            if (profile.getEmail() == null || profile.getEmail().isBlank()) {
                 log.warn("Skipping overdue notification because profile {} does not have an email address", event.profileId());
                 return;
             }
 
             NotificationDispatchRequestDto request = new NotificationDispatchRequestDto();
             request.setTemplateId(MISSED_PAYMENT_EMAIL_TEMPLATE);
-            request.setDestination(profile.email());
+            request.setDestination(profile.getEmail());
             request.setActor(OVERDUE_NOTIFICATION_ACTOR);
             request.setTemplateVariables(Map.of(
-                    "recipientName", profile.displayName(),
+                    "recipientName", profile.getDisplayName(),
                     "amount", event.outstandingPrincipal().toPlainString(),
                     "currency", event.currency(),
                     "accountReference", event.accountReference(),

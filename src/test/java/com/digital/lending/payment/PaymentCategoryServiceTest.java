@@ -1,7 +1,7 @@
 package com.digital.lending.payment;
 
-import com.digital.lending.payment.dto.PaymentCategoryRequest;
-import com.digital.lending.payment.dto.PaymentCategoryResponse;
+import com.digital.lending.payment.dto.PaymentCategoryRequestDto;
+import com.digital.lending.payment.dto.PaymentCategoryResponseDto;
 import com.digital.lending.payment.model.PaymentCategory;
 import com.digital.lending.payment.repository.PaymentCategoryRepository;
 import com.digital.lending.payment.service.PaymentCategoryServiceImpl;
@@ -32,12 +32,12 @@ class PaymentCategoryServiceTest {
     @InjectMocks
     private PaymentCategoryServiceImpl service;
 
-    private PaymentCategoryRequest request;
+    private PaymentCategoryRequestDto request;
     private PaymentCategory entity;
 
     @BeforeEach
     void setUp() {
-        request = new PaymentCategoryRequest("REPAYMENT", "Loan Repayment", "Repayment category");
+        request = new PaymentCategoryRequestDto("REPAYMENT", "Loan Repayment", "Repayment category");
         entity = PaymentCategory.builder()
                 .id("REPAYMENT")
                 .name("Loan Repayment")
@@ -55,7 +55,7 @@ class PaymentCategoryServiceTest {
         void shouldCreateCategorySuccessfully() {
             when(repository.save(any(PaymentCategory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            PaymentCategoryResponse response = service.create(request);
+            PaymentCategoryResponseDto response = service.create(request);
 
             assertEquals("REPAYMENT", response.id());
             assertEquals("Loan Repayment", response.name());
@@ -72,7 +72,7 @@ class PaymentCategoryServiceTest {
         void shouldReturnCategoryWhenFound() {
             when(repository.findById("REPAYMENT")).thenReturn(Optional.of(entity));
 
-            PaymentCategoryResponse response = service.get("REPAYMENT");
+            PaymentCategoryResponseDto response = service.get("REPAYMENT");
 
             assertEquals("REPAYMENT", response.id());
             assertEquals("Loan Repayment", response.name());
@@ -97,7 +97,7 @@ class PaymentCategoryServiceTest {
         void shouldReturnAllCategories() {
             when(repository.findAll()).thenReturn(List.of(entity));
 
-            List<PaymentCategoryResponse> result = service.getAll();
+            List<PaymentCategoryResponseDto> result = service.getAll();
 
             assertEquals(1, result.size());
             assertEquals("REPAYMENT", result.getFirst().id());
@@ -114,9 +114,9 @@ class PaymentCategoryServiceTest {
             when(repository.findById("REPAYMENT")).thenReturn(Optional.of(entity));
             when(repository.save(any(PaymentCategory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-            PaymentCategoryResponse response = service.update(
+            PaymentCategoryResponseDto response = service.update(
                     "REPAYMENT",
-                    new PaymentCategoryRequest("REPAYMENT", "Loan Repayment Updated", "Updated description")
+                    new PaymentCategoryRequestDto("REPAYMENT", "Loan Repayment Updated", "Updated description")
             );
 
             assertEquals("Loan Repayment Updated", response.name());

@@ -1,6 +1,6 @@
 package com.digital.lending.profile.dto;
 
-public record UpdateProfileRequest(
+public record UpdateProfileRequestDto(
         String email,
         String phoneCountryCode,
         String phoneNationalNumber,

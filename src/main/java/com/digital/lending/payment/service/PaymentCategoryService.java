@@ -1,19 +1,19 @@
 package com.digital.lending.payment.service;
 
-import com.digital.lending.payment.dto.PaymentCategoryRequest;
-import com.digital.lending.payment.dto.PaymentCategoryResponse;
+import com.digital.lending.payment.dto.PaymentCategoryRequestDto;
+import com.digital.lending.payment.dto.PaymentCategoryResponseDto;
 
 import java.util.List;
 
 public interface PaymentCategoryService {
 
-    PaymentCategoryResponse create(PaymentCategoryRequest request);
+    PaymentCategoryResponseDto create(PaymentCategoryRequestDto request);
 
-    PaymentCategoryResponse get(String id);
+    PaymentCategoryResponseDto get(String id);
 
-    List<PaymentCategoryResponse> getAll();
+    List<PaymentCategoryResponseDto> getAll();
 
-    PaymentCategoryResponse update(String id, PaymentCategoryRequest request);
+    PaymentCategoryResponseDto update(String id, PaymentCategoryRequestDto request);
 
     void delete(String id);
 }

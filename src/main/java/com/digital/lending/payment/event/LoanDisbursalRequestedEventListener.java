@@ -5,8 +5,7 @@ import com.digital.lending.payment.dto.PaymentExecutionRequestDto;
 import com.digital.lending.payment.service.PaymentProcessingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -16,8 +15,7 @@ public class LoanDisbursalRequestedEventListener {
 
     private final PaymentProcessingService paymentProcessingService;
 
-    @Async
-    @EventListener
+    @ApplicationModuleListener
     public void onLoanDisbursalRequested(LoanDisbursalRequestedEvent event) {
         try {
             PaymentExecutionRequestDto request = new PaymentExecutionRequestDto();

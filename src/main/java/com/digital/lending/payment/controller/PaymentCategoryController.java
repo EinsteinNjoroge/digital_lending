@@ -1,7 +1,7 @@
 package com.digital.lending.payment.controller;
 
-import com.digital.lending.payment.dto.PaymentCategoryRequest;
-import com.digital.lending.payment.dto.PaymentCategoryResponse;
+import com.digital.lending.payment.dto.PaymentCategoryRequestDto;
+import com.digital.lending.payment.dto.PaymentCategoryResponseDto;
 import com.digital.lending.payment.service.PaymentCategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,24 +28,24 @@ public class PaymentCategoryController {
 
     @PostMapping
     @Operation(summary = "Create category")
-    public PaymentCategoryResponse create(@Valid @RequestBody PaymentCategoryRequest request) {
+    public PaymentCategoryResponseDto create(@Valid @RequestBody PaymentCategoryRequestDto request) {
         return service.create(request);
     }
 
     @GetMapping("/{id}")
-    public PaymentCategoryResponse get(@PathVariable String id) {
+    public PaymentCategoryResponseDto get(@PathVariable String id) {
         return service.get(id);
     }
 
     @GetMapping
-    public List<PaymentCategoryResponse> getAll() {
+    public List<PaymentCategoryResponseDto> getAll() {
         return service.getAll();
     }
 
     @PutMapping("/{id}")
-    public PaymentCategoryResponse update(
+    public PaymentCategoryResponseDto update(
             @PathVariable String id,
-            @Valid @RequestBody PaymentCategoryRequest request
+            @Valid @RequestBody PaymentCategoryRequestDto request
     ) {
         return service.update(id, request);
     }

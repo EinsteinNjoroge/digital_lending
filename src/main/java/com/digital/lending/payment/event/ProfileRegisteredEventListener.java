@@ -1,16 +1,17 @@
 package com.digital.lending.payment.event;
 
 import com.digital.lending.events.ProfileRegisteredEvent;
+import com.digital.lending.events.ProfileUpdatedEvent;
 import com.digital.lending.payment.model.PaymentParty;
 import com.digital.lending.payment.repository.PaymentPartyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Slf4j
 @Component
@@ -19,31 +20,41 @@ public class ProfileRegisteredEventListener {
 
     private final PaymentPartyRepository paymentPartyRepository;
 
-    @Async
-    @Transactional
-    @EventListener
+    @ApplicationModuleListener
     public void onProfileRegistered(ProfileRegisteredEvent event) {
-        if (event.profileId() == null || event.profileId().isBlank()) {
+        upsertParty(event.profileId(), event.displayName(), event.email(), event.occurredAt());
+    }
+
+    @ApplicationModuleListener
+    public void onProfileUpdated(ProfileUpdatedEvent event) {
+        upsertParty(event.profileId(), event.displayName(), event.email(), event.occurredAt());
+    }
+
+    private void upsertParty(String profileId, String displayName, String email, Instant occurredAt) {
+        if (profileId == null || profileId.isBlank()) {
             log.warn("Skipping payment party bootstrap because profileId is missing");
             return;
         }
 
-        paymentPartyRepository.findByPartyReference(event.profileId())
+        LocalDateTime updatedAt = occurredAt == null
+                ? LocalDateTime.now()
+                : LocalDateTime.ofInstant(occurredAt, ZoneOffset.UTC);
+
+        paymentPartyRepository.findByPartyReference(profileId)
                 .ifPresentOrElse(existing -> {
-                    existing.setDisplayName(resolveDisplayName(event));
+                    existing.setDisplayName(resolveDisplayName(profileId, displayName, email));
                     existing.setPartyType("PROFILE");
                     existing.setSourceModule("PROFILE");
-                    existing.setUpdatedAt(LocalDateTime.now());
+                    existing.setUpdatedAt(updatedAt);
                     paymentPartyRepository.save(existing);
-                }, () -> paymentPartyRepository.save(newParty(event)));
+                }, () -> paymentPartyRepository.save(newParty(profileId, displayName, email, updatedAt)));
     }
 
-    private PaymentParty newParty(ProfileRegisteredEvent event) {
-        LocalDateTime now = LocalDateTime.now();
+    private PaymentParty newParty(String profileId, String displayName, String email, LocalDateTime now) {
         PaymentParty party = new PaymentParty();
-        party.setId("party_" + event.profileId());
-        party.setPartyReference(event.profileId());
-        party.setDisplayName(resolveDisplayName(event));
+        party.setId("party_" + profileId);
+        party.setPartyReference(profileId);
+        party.setDisplayName(resolveDisplayName(profileId, displayName, email));
         party.setPartyType("PROFILE");
         party.setSourceModule("PROFILE");
         party.setCreatedAt(now);
@@ -51,13 +62,13 @@ public class ProfileRegisteredEventListener {
         return party;
     }
 
-    private String resolveDisplayName(ProfileRegisteredEvent event) {
-        if (event.displayName() != null && !event.displayName().isBlank()) {
-            return event.displayName();
+    private String resolveDisplayName(String profileId, String displayName, String email) {
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
         }
-        if (event.email() != null && !event.email().isBlank()) {
-            return event.email();
+        if (email != null && !email.isBlank()) {
+            return email;
         }
-        return "Profile " + event.profileId();
+        return "Profile " + profileId;
     }
 }

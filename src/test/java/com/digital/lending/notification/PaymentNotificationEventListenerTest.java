@@ -3,9 +3,9 @@ package com.digital.lending.notification;
 import com.digital.lending.events.PaymentEvent;
 import com.digital.lending.notification.dto.NotificationDispatchRequestDto;
 import com.digital.lending.notification.event.PaymentNotificationEventListener;
+import com.digital.lending.notification.model.ProfileContactProjection;
+import com.digital.lending.notification.repository.ProfileContactProjectionRepository;
 import com.digital.lending.notification.service.NotificationService;
-import com.digital.lending.profile.dto.ProfileDto;
-import com.digital.lending.profile.service.ProfileService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,11 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentNotificationEventListenerTest {
@@ -30,7 +31,7 @@ class PaymentNotificationEventListenerTest {
     private NotificationService notificationService;
 
     @Mock
-    private ProfileService profileService;
+    private ProfileContactProjectionRepository profileContactProjectionRepository;
 
     @InjectMocks
     private PaymentNotificationEventListener listener;
@@ -38,9 +39,7 @@ class PaymentNotificationEventListenerTest {
     @Test
     @DisplayName("Should dispatch disbursement email notification for completed payment events")
     void shouldDispatchDisbursementNotification() {
-        when(profileService.findProfileById("PROF-1")).thenReturn(Optional.of(new ProfileDto(
-                "PROF-1", "INDIVIDUAL", "alex@example.com", "+254", "700000000", "KEN", "ACTIVE", "Alex Doe", List.of(), Instant.now()
-        )));
+        when(profileContactProjectionRepository.findById("PROF-1")).thenReturn(Optional.of(profile("PROF-1", "Alex Doe", "alex@example.com")));
 
         listener.onPaymentCompleted(new PaymentEvent(
                 "tx_1", "PROF-1", "LN-2026-1001", "DISBURSEMENT", "INTERNAL", "COMPLETED",
@@ -61,6 +60,16 @@ class PaymentNotificationEventListenerTest {
                 new BigDecimal("1500.00"), "KES", "INTREF001", LocalDateTime.of(2026, 6, 10, 11, 0)
         ));
 
-        verifyNoInteractions(notificationService, profileService);
+        verifyNoInteractions(notificationService, profileContactProjectionRepository);
+    }
+
+    private ProfileContactProjection profile(String id, String displayName, String email) {
+        ProfileContactProjection projection = new ProfileContactProjection();
+        projection.setProfileId(id);
+        projection.setDisplayName(displayName);
+        projection.setEmail(email);
+        projection.setStatus("ACTIVE");
+        projection.setUpdatedAt(Instant.now());
+        return projection;
     }
 }

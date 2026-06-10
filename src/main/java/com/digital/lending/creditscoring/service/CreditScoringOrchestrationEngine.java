@@ -1,6 +1,6 @@
 package com.digital.lending.creditscoring.service;
 
-import com.digital.lending.creditscoring.dto.CreditDecisionResponse;
+import com.digital.lending.creditscoring.dto.CreditDecisionResponseDto;
 import com.digital.lending.creditscoring.dto.ScoringRequestDto;
 import com.digital.lending.creditscoring.model.CreditScoringDecisionLog;
 import com.digital.lending.creditscoring.model.CreditScoringModelDefinition;
@@ -27,7 +27,7 @@ public class CreditScoringOrchestrationEngine {
     private final CreditScoringDecisionLogRepository decisionLogRepository;
     private final CreditScoringModelRepository modelRepository;
 
-    public CreditDecisionResponse resolveAndEvaluate(ScoringRequestDto request) {
+    public CreditDecisionResponseDto resolveAndEvaluate(ScoringRequestDto request) {
         CreditScoringModelDefinition activeModel = modelRepository.findActiveModel(
                         request.getPartnerId(),
                         request.getCurrency(),
@@ -48,7 +48,7 @@ public class CreditScoringOrchestrationEngine {
     }
 
     @Transactional
-    public CreditDecisionResponse evaluateCreditRisk(
+    public CreditDecisionResponseDto evaluateCreditRisk(
             String transactionId,
             String profileId,
             String partnerId,
@@ -112,7 +112,7 @@ public class CreditScoringOrchestrationEngine {
                 finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
     }
 
-    private CreditDecisionResponse persistAndReturn(
+    private CreditDecisionResponseDto persistAndReturn(
             String transactionId,
             String profileId,
             String partnerId,
@@ -147,6 +147,6 @@ public class CreditScoringOrchestrationEngine {
             auditTrace.put("PERSISTENCE_FAULT_WARNING", "Log failed execution payload write boundary: " + ex.getMessage());
         }
 
-        return new CreditDecisionResponse(decisionId, decisionOutcome, finalScore, computedLimit, auditTrace);
+        return new CreditDecisionResponseDto(decisionId, decisionOutcome, finalScore, computedLimit, auditTrace);
     }
 }

@@ -18,11 +18,11 @@ import java.util.List;
     property = "profileType"
 )
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = CreateProfileRequest.Individual.class, name = "INDIVIDUAL"),
-    @JsonSubTypes.Type(value = CreateProfileRequest.Corporate.class, name = "CORPORATE"),
-    @JsonSubTypes.Type(value = CreateProfileRequest.Joint.class, name = "JOINT")
+    @JsonSubTypes.Type(value = CreateProfileRequestDto.Individual.class, name = "INDIVIDUAL"),
+    @JsonSubTypes.Type(value = CreateProfileRequestDto.Corporate.class, name = "CORPORATE"),
+    @JsonSubTypes.Type(value = CreateProfileRequestDto.Joint.class, name = "JOINT")
 })
-public interface CreateProfileRequest {
+public interface CreateProfileRequestDto {
     String email();
     String phoneCountryCode();
     String phoneNationalNumber();
@@ -44,7 +44,7 @@ public interface CreateProfileRequest {
         String lastName,
         @Valid @NotEmpty(message = "At least one identity document is required") List<IdentityInput> identities,
         LocalDate dateOfBirth
-    ) implements CreateProfileRequest {}
+    ) implements CreateProfileRequestDto {}
 
     record Corporate(
         @NotBlank(message = "Email is required")
@@ -58,7 +58,7 @@ public interface CreateProfileRequest {
         LocalDate incorporationDate,
         String authorizedSignatoryName,
         @Valid @NotEmpty(message = "Director identity documents are required") List<IdentityInput> directorIdentities
-    ) implements CreateProfileRequest {}
+    ) implements CreateProfileRequestDto {}
 
     record Joint(
         @NotBlank(message = "Email is required")
@@ -71,5 +71,5 @@ public interface CreateProfileRequest {
         String primaryContactName,
         @NotNull(message = "Number of applicants is required") Integer numberOfApplicants,
         @Valid @NotEmpty(message = "Applicant identity documents are required") List<IdentityInput> applicantIdentities
-    ) implements CreateProfileRequest {}
+    ) implements CreateProfileRequestDto {}
 }

@@ -8,7 +8,7 @@ import com.digital.lending.loanaccount.model.LoanAccount;
 import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
 import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
 import com.digital.lending.loanaccount.repository.LoanAccountRepository;
-import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
+import com.digital.lending.loanaccount.repository.LoanProductConfigurationProjectionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class LoanServicingService {
 
     private final LoanAccountRepository loanAccountRepository;
     private final LoanAccountAuditLogRepository loanAccountAuditLogRepository;
-    private final LoanProductConfigurationRepository loanProductConfigurationRepository;
+    private final LoanProductConfigurationProjectionRepository loanProductConfigurationProjectionRepository;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -102,8 +102,8 @@ public class LoanServicingService {
             return;
         }
 
-        String currency = loanProductConfigurationRepository.findById(loanAccount.getLoanProductId())
-                .map(product -> product.getCurrency())
+        String currency = loanProductConfigurationProjectionRepository.findById(loanAccount.getLoanProductId())
+                .map(projection -> projection.getCurrency())
                 .orElse("KES");
 
         eventPublisher.publishEvent(new LoanAccountOverdueEvent(
