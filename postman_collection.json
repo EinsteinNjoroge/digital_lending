@@ -1,0 +1,554 @@
+{
+  "info": {
+    "_postman_id": "2e5c96d4-8ad8-4b2d-b57f-2a37f1c4c001",
+    "name": "Digital Lending Platform API",
+    "description": "Postman collection for the lending-platform submission. It includes a happy-path borrower journey, a credit-denied journey, and a full endpoint catalog for all modules.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const runId = pm.collectionVariables.get('run_id') || String(Date.now());",
+          "pm.collectionVariables.set('run_id', runId);",
+          "const defaults = {",
+          "  baseUrl: 'http://localhost:8080',",
+          "  actor_email: 'postman.runner@lending.local',",
+          "  partner_id: 'SAF_KE_01',",
+          "  currency: 'KES',",
+          "  seeded_loan_product_id: 'prod_001',",
+          "  disbursement_provider: 'INTERNAL',",
+          "  repayment_provider: 'MPESA',",
+          "  happy_request_amount: '5000.00',",
+          "  denied_request_amount: '5000.00',",
+          "  from_date: '2026-01-01T00:00:00',",
+          "  to_date: '2026-12-31T23:59:59'",
+          "};",
+          "Object.entries(defaults).forEach(([key, value]) => { if (!pm.collectionVariables.get(key)) pm.collectionVariables.set(key, value); });",
+          "const generated = {",
+          "  happy_profile_email: 'happy.' + runId + '@example.com',",
+          "  denied_profile_email: 'denied.' + runId + '@example.com',",
+          "  all_profile_email: 'catalog.' + runId + '@example.com',",
+          "  happy_identity_number: 'HAPPY' + runId,",
+          "  denied_identity_number: 'DENIED' + runId,",
+          "  all_identity_number: 'CATALOG' + runId,",
+          "  family_code: 'FAM_API_' + runId,",
+          "  product_code: 'LP_API_' + runId,",
+          "  category_id: 'FEE_' + runId,",
+          "  happy_loan_idempotency_key: 'happy-loan-' + runId,",
+          "  denied_loan_idempotency_key: 'denied-loan-' + runId,",
+          "  all_loan_idempotency_key: 'all-loan-' + runId",
+          "};",
+          "Object.entries(generated).forEach(([key, value]) => { if (!pm.collectionVariables.get(key)) pm.collectionVariables.set(key, value); });",
+          "pm.collectionVariables.set('callback_timestamp', new Date().toISOString().slice(0, 19));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "actor_email", "value": "postman.runner@lending.local" },
+    { "key": "partner_id", "value": "SAF_KE_01" },
+    { "key": "currency", "value": "KES" },
+    { "key": "seeded_loan_product_id", "value": "prod_001" },
+    { "key": "disbursement_provider", "value": "INTERNAL" },
+    { "key": "repayment_provider", "value": "MPESA" },
+    { "key": "happy_request_amount", "value": "5000.00" },
+    { "key": "denied_request_amount", "value": "5000.00" },
+    { "key": "from_date", "value": "2026-01-01T00:00:00" },
+    { "key": "to_date", "value": "2026-12-31T23:59:59" },
+    { "key": "run_id", "value": "" },
+    { "key": "callback_timestamp", "value": "" },
+    { "key": "happy_profile_email", "value": "" },
+    { "key": "denied_profile_email", "value": "" },
+    { "key": "all_profile_email", "value": "" },
+    { "key": "happy_identity_number", "value": "" },
+    { "key": "denied_identity_number", "value": "" },
+    { "key": "all_identity_number", "value": "" },
+    { "key": "happy_profile_id", "value": "" },
+    { "key": "denied_profile_id", "value": "" },
+    { "key": "all_profile_id", "value": "" },
+    { "key": "happy_loan_idempotency_key", "value": "" },
+    { "key": "denied_loan_idempotency_key", "value": "" },
+    { "key": "all_loan_idempotency_key", "value": "" },
+    { "key": "happy_loan_account_id", "value": "" },
+    { "key": "denied_loan_account_id", "value": "" },
+    { "key": "all_loan_account_id", "value": "" },
+    { "key": "happy_account_number", "value": "" },
+    { "key": "all_account_number", "value": "" },
+    { "key": "happy_disbursement_tx_id", "value": "" },
+    { "key": "happy_disbursement_external_ref", "value": "" },
+    { "key": "happy_disbursement_provider_tx_id", "value": "" },
+    { "key": "family_code", "value": "" },
+    { "key": "family_definition_id", "value": "" },
+    { "key": "product_code", "value": "" },
+    { "key": "product_id", "value": "" },
+    { "key": "scoring_model_id", "value": "" },
+    { "key": "category_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Happy-path user-loan journey flow",
+      "item": [
+        {
+          "name": "Profiles - create happy path borrower",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Profile created', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('happy_profile_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileType\": \"INDIVIDUAL\",\n  \"email\": \"{{happy_profile_email}}\",\n  \"phoneCountryCode\": \"+254\",\n  \"phoneNationalNumber\": \"712345678\",\n  \"residenceCountry\": \"KEN\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Happy{{run_id}}\",\n  \"dateOfBirth\": \"1996-06-07\",\n  \"identities\": [\n    {\n      \"documentType\": \"NATIONAL_ID\",\n      \"documentNumber\": \"{{happy_identity_number}}\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/profiles"
+          }
+        },
+        {
+          "name": "Accounts - create happy path loan application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Loan application created', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('happy_loan_account_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Modified-By", "value": "{{actor_email}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileId\": \"{{happy_profile_id}}\",\n  \"loanProductId\": \"{{seeded_loan_product_id}}\",\n  \"idempotencyKey\": \"{{happy_loan_idempotency_key}}\",\n  \"initialPrincipal\": {{happy_request_amount}},\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"scoringFeatures\": {\n    \"wallet_throughput_30d\": \"30000\",\n    \"has_active_default\": \"false\"\n  },\n  \"disbursementProviderId\": \"{{disbursement_provider}}\",\n  \"disbursementDestinationReference\": \"WALLET-{{happy_profile_id}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/loan-accounts"
+          }
+        },
+        {
+          "name": "Accounts - list happy path loan accounts by profileId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Loan accounts fetched', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json.content && json.content.length > 0) {",
+                  "  pm.collectionVariables.set('happy_loan_account_id', json.content[0].id);",
+                  "  if (json.content[0].accountNumber) pm.collectionVariables.set('happy_account_number', json.content[0].accountNumber);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/loan-accounts?profileId={{happy_profile_id}}"
+          }
+        },
+        {
+          "name": "Payments - list happy path payments by profileId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Payments fetched', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json.content && json.content.length > 0) {",
+                  "  const disbursement = json.content.find(item => item.category === 'DISBURSEMENT');",
+                  "  if (disbursement) {",
+                  "    pm.collectionVariables.set('happy_disbursement_tx_id', disbursement.id);",
+                  "    if (disbursement.externalReferenceNumber) pm.collectionVariables.set('happy_disbursement_external_ref', disbursement.externalReferenceNumber);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/payments?profileId={{happy_profile_id}}"
+          }
+        },
+        {
+          "name": "Payments - complete happy path disbursement callback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internalTransactionId\": \"{{happy_disbursement_tx_id}}\",\n  \"providerTransactionId\": \"INTERNAL-TX-{{run_id}}\",\n  \"externalReferenceNumber\": \"{{happy_disbursement_external_ref}}\",\n  \"outcomeStatus\": \"COMPLETED\",\n  \"accountReference\": \"{{happy_account_number}}\",\n  \"profileId\": \"{{happy_profile_id}}\",\n  \"categoryId\": \"DISBURSEMENT\",\n  \"amount\": {{happy_request_amount}},\n  \"currency\": \"{{currency}}\",\n  \"rawPayload\": \"{\\\"provider\\\":\\\"INTERNAL\\\",\\\"status\\\":\\\"COMPLETED\\\"}\",\n  \"callbackTimestamp\": \"{{callback_timestamp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/payments/providers/{{disbursement_provider}}/callback"
+          }
+        },
+        {
+          "name": "Payments - create happy path repayment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"repayment-{{run_id}}\",\n  \"categoryId\": \"REPAYMENT\",\n  \"providerId\": \"{{repayment_provider}}\",\n  \"accountReference\": \"{{happy_account_number}}\",\n  \"loanAccountId\": \"{{happy_loan_account_id}}\",\n  \"profileId\": \"{{happy_profile_id}}\",\n  \"senderPartyReference\": \"{{happy_profile_id}}\",\n  \"receiverPartyReference\": \"LENDER_TREASURY\",\n  \"amount\": {{happy_request_amount}},\n  \"currency\": \"{{currency}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/payments"
+          }
+        },
+        {
+          "name": "Accounts - list happy path loan accounts after repayment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/loan-accounts?profileId={{happy_profile_id}}"
+          }
+        },
+        {
+          "name": "Notifications - list happy path notification logs by recipient",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/notifications?recipient={{happy_profile_email}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User-loan journey flow with credit denied",
+      "item": [
+        {
+          "name": "Profiles - create denied-flow borrower",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Profile created', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('denied_profile_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileType\": \"INDIVIDUAL\",\n  \"email\": \"{{denied_profile_email}}\",\n  \"phoneCountryCode\": \"+254\",\n  \"phoneNationalNumber\": \"733333333\",\n  \"residenceCountry\": \"KEN\",\n  \"firstName\": \"Dana\",\n  \"lastName\": \"Denied{{run_id}}\",\n  \"dateOfBirth\": \"1994-03-04\",\n  \"identities\": [\n    {\n      \"documentType\": \"NATIONAL_ID\",\n      \"documentNumber\": \"{{denied_identity_number}}\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/profiles"
+          }
+        },
+        {
+          "name": "Accounts - create denied-flow loan application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Denied-flow application created', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('denied_loan_account_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Modified-By", "value": "{{actor_email}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileId\": \"{{denied_profile_id}}\",\n  \"loanProductId\": \"{{seeded_loan_product_id}}\",\n  \"idempotencyKey\": \"{{denied_loan_idempotency_key}}\",\n  \"initialPrincipal\": {{denied_request_amount}},\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"scoringFeatures\": {\n    \"wallet_throughput_30d\": \"30000\",\n    \"has_active_default\": \"true\"\n  },\n  \"disbursementProviderId\": \"{{disbursement_provider}}\",\n  \"disbursementDestinationReference\": \"WALLET-{{denied_profile_id}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/loan-accounts"
+          }
+        },
+        {
+          "name": "Accounts - list denied-flow loan accounts by profileId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/loan-accounts?profileId={{denied_profile_id}}"
+          }
+        },
+        {
+          "name": "Payments - list denied-flow payments by profileId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/payments?profileId={{denied_profile_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "All endpoints in all modules",
+      "item": [
+        {
+          "name": "Profile module",
+          "item": [
+            {
+              "name": "Profiles - create profile",
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json(); if (json.id) pm.collectionVariables.set('all_profile_id', json.id);"] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"profileType\": \"INDIVIDUAL\",\n  \"email\": \"{{all_profile_email}}\",\n  \"phoneCountryCode\": \"+254\",\n  \"phoneNationalNumber\": \"755555555\",\n  \"residenceCountry\": \"KEN\",\n  \"firstName\": \"Casey\",\n  \"lastName\": \"Catalog{{run_id}}\",\n  \"dateOfBirth\": \"1992-01-02\",\n  \"identities\": [\n    {\n      \"documentType\": \"NATIONAL_ID\",\n      \"documentNumber\": \"{{all_identity_number}}\"\n    }\n  ]\n}" },
+                "url": "{{baseUrl}}/api/v1/profiles"
+              }
+            },
+            { "name": "Profiles - get profile by id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/profiles/{{all_profile_id}}" } },
+            { "name": "Profiles - list all profiles", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/profiles" } },
+            {
+              "name": "Profiles - update profile",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"updated.{{all_profile_email}}\",\n  \"phoneCountryCode\": \"+254\",\n  \"phoneNationalNumber\": \"766666666\",\n  \"residenceCountry\": \"KEN\"\n}" },
+                "url": "{{baseUrl}}/api/v1/profiles/{{all_profile_id}}"
+              }
+            },
+            { "name": "Profiles - delete profile", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/profiles/{{all_profile_id}}" } }
+          ]
+        },
+        {
+          "name": "Loan product families module",
+          "item": [
+            {
+              "name": "Loan Product Families - create family definition",
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json(); if (json.id) pm.collectionVariables.set('family_definition_id', json.id);"] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"familyCode\": \"{{family_code}}\",\n  \"displayName\": \"API Family {{run_id}}\",\n  \"disbursementHandlerToken\": \"internalWalletDisbursementHandler\",\n  \"accrualHandlerToken\": \"straightLineDailyAccrualHandler\",\n  \"repaymentHandlerToken\": \"fifoLedgerRepaymentSettlementHandler\",\n  \"delinquencyHandlerToken\": \"softCollectionsHandler\",\n  \"isActive\": true\n}" },
+                "url": "{{baseUrl}}/api/v1/family-definitions"
+              }
+            },
+            { "name": "Loan Product Families - get family definition by id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/family-definitions/{{family_definition_id}}" } },
+            { "name": "Loan Product Families - list all family definitions", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/family-definitions" } },
+            {
+              "name": "Loan Product Families - update family definition",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"familyCode\": \"{{family_code}}\",\n  \"displayName\": \"API Family Updated {{run_id}}\",\n  \"disbursementHandlerToken\": \"internalWalletDisbursementHandler\",\n  \"accrualHandlerToken\": \"straightLineDailyAccrualHandler\",\n  \"repaymentHandlerToken\": \"fifoLedgerRepaymentSettlementHandler\",\n  \"delinquencyHandlerToken\": \"softCollectionsHandler\",\n  \"isActive\": true\n}" },
+                "url": "{{baseUrl}}/api/v1/family-definitions/{{family_definition_id}}"
+              }
+            },
+            { "name": "Loan Product Families - delete family definition", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/family-definitions/{{family_definition_id}}" } }
+          ]
+        },
+        {
+          "name": "Loan products module",
+          "item": [
+            {
+              "name": "Loan Products - create loan product",
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json(); if (json.id) pm.collectionVariables.set('product_id', json.id);"] } }],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-Modified-By", "value": "{{actor_email}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"productCode\": \"{{product_code}}\",\n  \"name\": \"API Product {{run_id}}\",\n  \"familyDefinitionId\": \"{{family_definition_id}}\",\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"isActive\": true,\n  \"parameters\": {\n    \"interest_rate_daily\": \"0.0015\",\n    \"max_tenor_days\": \"30\"\n  },\n  \"documentMatrices\": {\n    \"UNDERWRITING_CHECKLIST\": {\n      \"minimum_wallet_age_months\": 6,\n      \"require_identity_verification\": true\n    }\n  }\n}" },
+                "url": "{{baseUrl}}/api/v1/loan-products"
+              }
+            },
+            { "name": "Loan Products - get loan product by id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products/{{product_id}}" } },
+            { "name": "Loan Products - list all loan products", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products" } },
+            { "name": "Loan Products - list all loan products by partnerId", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products?partnerId={{partner_id}}" } },
+            { "name": "Loan Products - list all loan products by currency", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products?currency={{currency}}" } },
+            { "name": "Loan Products - list all loan products by isActive", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products?isActive=true" } },
+            { "name": "Loan Products - list all loan products by partnerId and currency", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products?partnerId={{partner_id}}&currency={{currency}}" } },
+            { "name": "Loan Products - list all loan products by partnerId currency and isActive", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-products?partnerId={{partner_id}}&currency={{currency}}&isActive=true" } },
+            {
+              "name": "Loan Products - update loan product",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-Modified-By", "value": "{{actor_email}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"productCode\": \"{{product_code}}\",\n  \"name\": \"API Product Updated {{run_id}}\",\n  \"familyDefinitionId\": \"{{family_definition_id}}\",\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"isActive\": true,\n  \"parameters\": {\n    \"interest_rate_daily\": \"0.0016\",\n    \"max_tenor_days\": \"45\"\n  },\n  \"documentMatrices\": {\n    \"UNDERWRITING_CHECKLIST\": {\n      \"minimum_wallet_age_months\": 3,\n      \"require_identity_verification\": true\n    }\n  }\n}" },
+                "url": "{{baseUrl}}/api/v1/loan-products/{{product_id}}"
+              }
+            },
+            { "name": "Loan Products - delete loan product", "request": { "method": "DELETE", "header": [{ "key": "X-Modified-By", "value": "{{actor_email}}" }], "url": "{{baseUrl}}/api/v1/loan-products/{{product_id}}" } }
+          ]
+        },
+        {
+          "name": "Credit scoring module",
+          "item": [
+            {
+              "name": "Credit Scoring - create model",
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json(); if (json.id) pm.collectionVariables.set('scoring_model_id', json.id);"] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"loanProductId\": \"{{product_id}}\",\n  \"rulesPayload\": {\n    \"knockOutRules\": [\n      { \"feature\": \"has_active_default\", \"operator\": \"EQUALS\", \"value\": \"true\" }\n    ],\n    \"scoringWeights\": [\n      {\n        \"feature\": \"wallet_throughput_30d\",\n        \"ranges\": [\n          { \"min\": 0, \"max\": 9999.99, \"points\": 150 },\n          { \"min\": 10000, \"max\": 19999.99, \"points\": 250 },\n          { \"min\": 20000, \"max\": 999999999, \"points\": 400 }\n        ]\n      }\n    ],\n    \"decisionThresholds\": { \"minimumScoreRequired\": 200, \"baseMultiplier\": 0.5 }\n  }\n}" },
+                "url": "{{baseUrl}}/api/v1/credit-scoring/models"
+              }
+            },
+            { "name": "Credit Scoring - get model by id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/credit-scoring/models/{{scoring_model_id}}" } },
+            { "name": "Credit Scoring - list all models", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/credit-scoring/models" } },
+            { "name": "Credit Scoring - list all models by partnerId", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/credit-scoring/models?partnerId={{partner_id}}" } },
+            { "name": "Credit Scoring - list all models by isActive", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/credit-scoring/models?isActive=true" } },
+            { "name": "Credit Scoring - list all models by partnerId and isActive", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/credit-scoring/models?partnerId={{partner_id}}&isActive=true" } },
+            {
+              "name": "Credit Scoring - update model",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"loanProductId\": \"{{product_id}}\",\n  \"rulesPayload\": {\n    \"knockOutRules\": [\n      { \"feature\": \"has_active_default\", \"operator\": \"EQUALS\", \"value\": \"true\" }\n    ],\n    \"scoringWeights\": [\n      {\n        \"feature\": \"wallet_throughput_30d\",\n        \"ranges\": [\n          { \"min\": 0, \"max\": 9999.99, \"points\": 120 },\n          { \"min\": 10000, \"max\": 19999.99, \"points\": 240 },\n          { \"min\": 20000, \"max\": 999999999, \"points\": 420 }\n        ]\n      }\n    ],\n    \"decisionThresholds\": { \"minimumScoreRequired\": 180, \"baseMultiplier\": 0.55 }\n  }\n}" },
+                "url": "{{baseUrl}}/api/v1/credit-scoring/models/{{scoring_model_id}}"
+              }
+            },
+            { "name": "Credit Scoring - delete model", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/credit-scoring/models/{{scoring_model_id}}" } },
+            {
+              "name": "Credit Scoring - evaluate credit decision",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"transactionId\": \"score-{{run_id}}\",\n  \"profileId\": \"{{happy_profile_id}}\",\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"loanProductId\": \"{{seeded_loan_product_id}}\",\n  \"features\": {\n    \"wallet_throughput_30d\": \"25000\",\n    \"has_active_default\": \"false\"\n  }\n}" },
+                "url": "{{baseUrl}}/api/v1/credit-scoring/evaluate"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accounts module",
+          "item": [
+            {
+              "name": "Accounts - create loan application",
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json(); if (json.id) pm.collectionVariables.set('all_loan_account_id', json.id);"] } }],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-Modified-By", "value": "{{actor_email}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"profileId\": \"{{all_profile_id}}\",\n  \"loanProductId\": \"{{seeded_loan_product_id}}\",\n  \"idempotencyKey\": \"{{all_loan_idempotency_key}}\",\n  \"initialPrincipal\": 4000.00,\n  \"partnerId\": \"{{partner_id}}\",\n  \"currency\": \"{{currency}}\",\n  \"scoringFeatures\": {\n    \"wallet_throughput_30d\": \"28000\",\n    \"has_active_default\": \"false\"\n  },\n  \"disbursementProviderId\": \"{{disbursement_provider}}\",\n  \"disbursementDestinationReference\": \"WALLET-{{all_profile_id}}\"\n}" },
+                "url": "{{baseUrl}}/api/v1/loan-accounts"
+              }
+            },
+            { "name": "Accounts - list all loan accounts", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-accounts" } },
+            { "name": "Accounts - list all loan accounts by profileId", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-accounts?profileId={{all_profile_id}}" } },
+            { "name": "Accounts - list all loan accounts by status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-accounts?status=ACTIVE" } },
+            { "name": "Accounts - list all loan accounts by profileId and status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-accounts?profileId={{all_profile_id}}&status=ACTIVE" } },
+            { "name": "Accounts - list all loan accounts with pagination", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/loan-accounts?page=0&size=5" } },
+            {
+              "name": "Accounts - update loan performance status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "X-Modified-By", "value": "{{actor_email}}" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"targetStatus\": \"WATCH\",\n  \"updateReason\": \"Manual review from Postman\"\n}" },
+                "url": "{{baseUrl}}/api/v1/loan-accounts/{{all_loan_account_id}}/performance-status"
+              }
+            },
+            { "name": "Accounts - run servicing job manually", "request": { "method": "POST", "url": "{{baseUrl}}/api/v1/internal/loan-accounts/servicing/run?trigger=manual-postman" } }
+          ]
+        },
+        {
+          "name": "Payments module",
+          "item": [
+            {
+              "name": "Payment Categories - create category",
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json(); if (json.id) pm.collectionVariables.set('category_id', json.id);"] } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{category_id}}\",\n  \"name\": \"API Fee Category {{run_id}}\",\n  \"description\": \"Category created from the full endpoint catalog\"\n}" },
+                "url": "{{baseUrl}}/api/v1/payment/categories"
+              }
+            },
+            { "name": "Payment Categories - get category by id", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payment/categories/{{category_id}}" } },
+            { "name": "Payment Categories - list all categories", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payment/categories" } },
+            {
+              "name": "Payment Categories - update category",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{category_id}}\",\n  \"name\": \"API Fee Category Updated {{run_id}}\",\n  \"description\": \"Updated from the full endpoint catalog\"\n}" },
+                "url": "{{baseUrl}}/api/v1/payment/categories/{{category_id}}"
+              }
+            },
+            { "name": "Payment Categories - delete category", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/v1/payment/categories/{{category_id}}" } },
+            {
+              "name": "Payments - create payment",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"idempotencyKey\": \"payment-{{run_id}}\",\n  \"categoryId\": \"REPAYMENT\",\n  \"providerId\": \"{{repayment_provider}}\",\n  \"accountReference\": \"{{happy_account_number}}\",\n  \"loanAccountId\": \"{{happy_loan_account_id}}\",\n  \"profileId\": \"{{happy_profile_id}}\",\n  \"senderPartyReference\": \"{{happy_profile_id}}\",\n  \"receiverPartyReference\": \"LENDER_TREASURY\",\n  \"amount\": 1000.00,\n  \"currency\": \"{{currency}}\"\n}" },
+                "url": "{{baseUrl}}/api/v1/payments"
+              }
+            },
+            {
+              "name": "Payments - process provider callback",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"providerTransactionId\": \"CALLBACK-{{run_id}}\",\n  \"externalReferenceNumber\": \"CALLBACK-EXT-{{run_id}}\",\n  \"outcomeStatus\": \"COMPLETED\",\n  \"accountReference\": \"{{happy_account_number}}\",\n  \"profileId\": \"{{happy_profile_id}}\",\n  \"categoryId\": \"REPAYMENT\",\n  \"amount\": 500.00,\n  \"currency\": \"{{currency}}\",\n  \"rawPayload\": \"{\\\"provider\\\":\\\"MPESA\\\",\\\"status\\\":\\\"COMPLETED\\\"}\",\n  \"callbackTimestamp\": \"{{callback_timestamp}}\"\n}" },
+                "url": "{{baseUrl}}/api/v1/payments/providers/{{repayment_provider}}/callback"
+              }
+            },
+            { "name": "Payments - list all payments", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments" } },
+            { "name": "Payments - list all payments by profileId", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments?profileId={{happy_profile_id}}" } },
+            { "name": "Payments - list all payments by accountReference", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments?accountReference={{happy_account_number}}" } },
+            { "name": "Payments - list all payments by providerId", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments?providerId={{repayment_provider}}" } },
+            { "name": "Payments - list all payments by currency", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments?currency={{currency}}" } },
+            { "name": "Payments - list all payments by fromDate and toDate", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments?fromDate={{from_date}}&toDate={{to_date}}" } },
+            { "name": "Payments - list all payments by profileId providerId and currency", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/payments?profileId={{happy_profile_id}}&providerId={{repayment_provider}}&currency={{currency}}" } }
+          ]
+        },
+        {
+          "name": "Notifications module",
+          "item": [
+            {
+              "name": "Notifications - send notification",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"templateId\": \"LOAN_DISBURSED_EMAIL\",\n  \"destination\": \"{{happy_profile_email}}\",\n  \"templateVariables\": {\n    \"recipientName\": \"Alex Happy\",\n    \"amount\": \"5000.00\",\n    \"currency\": \"{{currency}}\",\n    \"accountReference\": \"{{happy_account_number}}\",\n    \"valueDate\": \"2026-06-10\"\n  },\n  \"actor\": \"{{actor_email}}\"\n}" },
+                "url": "{{baseUrl}}/api/v1/notifications"
+              }
+            },
+            { "name": "Notifications - list all notification logs", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications" } },
+            { "name": "Notifications - list all notification logs by channel", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?channel=EMAIL" } },
+            { "name": "Notifications - list all notification logs by recipient", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?recipient={{happy_profile_email}}" } },
+            { "name": "Notifications - list all notification logs by status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?status=SENT" } },
+            { "name": "Notifications - list all notification logs by fromDate and toDate", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?fromDate={{from_date}}&toDate={{to_date}}" } },
+            { "name": "Notifications - list all notification logs by channel recipient and status", "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/notifications?channel=EMAIL&recipient={{happy_profile_email}}&status=SENT" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import com.digital.lending.creditscoring.model.CreditProfile;
 import com.digital.lending.creditscoring.service.CreditProfileService;
 import com.digital.lending.creditscoring.service.CreditScoringOrchestrationEngine;
 import com.digital.lending.events.LoanApplicationApprovedEvent;
+import com.digital.lending.loanaccount.repository.LoanAccountRepository;
 import com.digital.lending.events.LoanApplicationCreatedEvent;
 import com.digital.lending.events.LoanApplicationRejectedEvent;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,9 @@ class LoanApplicationCreatedEventListenerTest {
     private CreditProfileService creditProfileService;
 
     @Mock
+    private LoanAccountRepository loanAccountRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
@@ -50,6 +54,7 @@ class LoanApplicationCreatedEventListenerTest {
         when(orchestrationEngine.resolveAndEvaluate(any())).thenReturn(
                 new CreditDecisionResponse("123", "APPROVED", 88.0, 5000.0, Map.of("DECISION_REASON", "Approved"))
         );
+        when(loanAccountRepository.sumOutstandingExposure(anyString(), anyString(), any())).thenReturn(BigDecimal.ZERO);
 
         listener.onLoanApplicationCreated(event);
 

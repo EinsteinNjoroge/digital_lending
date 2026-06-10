@@ -10,15 +10,15 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 @Data
-@Schema(name = "LoanAccountOpeningRequest", description = "Inbound registration payload for creating a loan application and triggering the underwriting workflow.")
+@Schema(name = "LoanAccountOpeningRequest", description = "Request to create a loan application.")
 public class LoanAccountOpeningRequestDto {
 
     @NotBlank(message = "Profile reference identifier is required")
-    @Schema(example = "PROF-254700112233", description = "Unique profile tracking reference key")
+    @Schema(example = "PROF-254700112233", description = "Borrower profile id.")
     private String profileId;
 
     @NotBlank(message = "Target loan product UUID definition is required")
-    @Schema(example = "f186e626-c8b0-4e0c-bc1a-592b68f275ca")
+    @Schema(example = "f186e626-c8b0-4e0c-bc1a-592b68f275ca", description = "Loan product id.")
     private String loanProductId;
 
     @NotBlank(message = "Idempotency validation token is required")
@@ -39,7 +39,7 @@ public class LoanAccountOpeningRequestDto {
     @Schema(example = "KES", description = "Optional ISO 4217 currency code used by the credit-scoring and payment modules")
     private String currency;
 
-    @Schema(description = "Optional underwriting feature payload propagated to credit scoring as part of the loan application event")
+    @Schema(description = "Optional features passed to the credit-scoring engine.")
     private Map<String, String> scoringFeatures;
 
     @Schema(example = "INTERNAL", description = "Optional provider route to use for disbursal; defaults to INTERNAL when omitted")

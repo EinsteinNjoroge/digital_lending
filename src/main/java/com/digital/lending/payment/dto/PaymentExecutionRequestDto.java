@@ -11,11 +11,11 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-@Schema(description = "Payload required to initiate or record an inbound/outbound financial transaction")
+@Schema(description = "Request to create or record a payment.")
 public class PaymentExecutionRequestDto {
 
     @NotBlank
-    @Schema(example = "idem-key-88192-332", description = "Unique key to ensure exactly-once execution mechanics")
+    @Schema(example = "idem-key-88192-332", description = "Idempotency key for safe retries.")
     private String idempotencyKey;
 
     @NotBlank
@@ -27,7 +27,7 @@ public class PaymentExecutionRequestDto {
     private String providerId;
 
     @NotBlank
-    @Schema(example = "LN-2026-99102", description = "Generic reference tracking line completely blind to internal domain models")
+    @Schema(example = "LN-2026-99102", description = "Loan account reference shown to the customer or provider.")
     private String accountReference;
 
     @Schema(example = "acc_882c4491-1c20-4e0c-bc1a-592b68f275ca", description = "Optional internal loan account id for event-driven payment workflows")

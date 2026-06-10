@@ -7,10 +7,6 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: true
-  app:
-    notification:
-      mail:
-        from-address: no-reply@digital-lending.com
   mail:
     host: smtp.gmail.com
     port: 587
@@ -22,6 +18,15 @@ spring:
           auth: true
           starttls:
             enable: true
+
+app:
+  notification:
+    mail:
+      from-address: no-reply@digital-lending.com
+  servicing:
+    enabled: ${SERVICING_ENABLED:false}
+    cron: ${SERVICING_CRON:0 0 * * * *}
+    base-url: ${SERVICING_BASE_URL:http://localhost:${APP_PORT}}
 
 server:
   port: ${APP_PORT}

@@ -30,7 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/credit-scoring")
 @RequiredArgsConstructor
-@Tag(name = "Credit Scoring Domain Engine", description = "Multi-tenant rule evaluation orchestrator handling polymorphic underwriting frameworks for thin-file profile segments.")
+@Tag(name = "Credit Scoring", description = "Credit model management and score evaluation APIs.")
 public class CreditScoringController {
 
     private final CreditScoringOrchestrationEngine orchestrationEngine;
@@ -38,8 +38,8 @@ public class CreditScoringController {
 
     @PostMapping("/evaluate")
     @Operation(
-            summary = "Evaluate loan applications against dynamic scorecard rules",
-            description = "Processes incoming profile telemetry and application context against tenant-level scorecard models through the in-process underwriting engine."
+            summary = "Evaluate a credit decision",
+            description = "Evaluates supplied features against the active scorecard for the selected product."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CreditDecisionResponse.class))),
@@ -53,8 +53,8 @@ public class CreditScoringController {
 
     @PostMapping("/models")
     @Operation(
-            summary = "Provision a new multi-tenant credit scorecard rule matrix model definition record",
-            description = "Creates a credit scoring model."
+            summary = "Create a credit scoring model",
+            description = "Creates an active scorecard for a partner, currency, and product."
     )
     public ResponseEntity<CreditScoringModelResponseDto> createScoringModel(
             @Valid @RequestBody CreditScoringModelRequestDto request) {
@@ -62,7 +62,7 @@ public class CreditScoringController {
     }
 
     @PutMapping("/models/{id}")
-    @Operation(summary = "Update the live rules configuration payload payload strings mapped onto an active model instance reference")
+    @Operation(summary = "Update a credit scoring model")
     public ResponseEntity<CreditScoringModelResponseDto> updateScoringModel(
             @PathVariable("id") String id,
             @Valid @RequestBody CreditScoringModelRequestDto request) {
@@ -70,20 +70,20 @@ public class CreditScoringController {
     }
 
     @GetMapping("/models/{id}")
-    @Operation(summary = "Retrieve public layout views of a single specified credit model registration record properties")
+    @Operation(summary = "Get a credit scoring model")
     public ResponseEntity<CreditScoringModelResponseDto> getScoringModel(@PathVariable("id") String id) {
         return ResponseEntity.ok(managementService.getModelById(id));
     }
 
     @DeleteMapping("/models/{id}")
-    @Operation(summary = "Logically de-activate an operational scorecard model strategy target path from routing registries")
+    @Operation(summary = "Deactivate a credit scoring model")
     public ResponseEntity<Void> deleteScoringModel(@PathVariable("id") String id) {
         managementService.deleteModelLogical(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/models")
-    @Operation(summary = "Fetch and filter scorecard model configurations")
+    @Operation(summary = "List credit scoring models")
     public ResponseEntity<List<CreditScoringModelResponseDto>> getAllScoringModels(
             @RequestParam(value = "partnerId", required = false) String partnerId,
             @RequestParam(value = "isActive", required = false) Boolean isActive) {

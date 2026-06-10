@@ -32,13 +32,13 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
-@Tag(name = "Payment Management", description = "Decoupled transaction execution ledgers across heterogeneous provider networks")
+@Tag(name = "Payments", description = "Payment execution and provider callback APIs.")
 public class PaymentController {
 
     private final PaymentProcessingService service;
 
     @PostMapping
-    @Operation(summary = "Process financial payments", description = "Executes direct payments through the synchronous compatibility path.")
+    @Operation(summary = "Create a payment", description = "Records and processes a payment immediately.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Payment successfully recorded, ledger updated, and event dispatched",
                     content = @Content(schema = @Schema(implementation = PaymentResponseDto.class))),
@@ -51,7 +51,7 @@ public class PaymentController {
     }
 
     @PostMapping("/providers/{providerId}/callback")
-    @Operation(summary = "Process provider callback", description = "Finalizes asynchronous disbursement or repayment processing using the provider callback payload.")
+    @Operation(summary = "Process provider callback", description = "Finalizes an asynchronous disbursement or repayment.")
     public ResponseEntity<PaymentResponseDto> processProviderCallback(
             @PathVariable String providerId,
             @Valid @RequestBody PaymentProviderCallbackRequestDto request) {
@@ -59,7 +59,7 @@ public class PaymentController {
     }
 
     @GetMapping
-    @Operation(summary = "List all payments with filters", description = "Retrieves a paginated list of transaction records filtered by dates, reference tracking lines, or network platforms.")
+    @Operation(summary = "List payments", description = "Returns payments with optional filters.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Paginated ledger snapshot returned successfully")
     })

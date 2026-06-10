@@ -5,8 +5,10 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableAsync
+@EnableScheduling
 @Configuration
 public class OpenApiConfig {
 
@@ -14,8 +16,8 @@ public class OpenApiConfig {
     public OpenAPI globalOpenApiMetadata() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Core Lending Platform API Engine")
+                        .title("Digital Lending Platform API")
                         .version("v1.0.0")
-                        .description("Production-grade modular lending core infrastructure engines."));
+                        .description("Backend API for loan products, customer onboarding, underwriting, servicing, payments, and notifications."));
     }
 }

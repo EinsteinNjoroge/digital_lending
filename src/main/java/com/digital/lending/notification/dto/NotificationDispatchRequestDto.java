@@ -10,7 +10,7 @@ import java.util.Map;
 
 @Getter
 @Setter
-@Schema(description = "Payload envelope containing template codes and variable maps to issue notifications")
+@Schema(description = "Request to send a notification from a stored template.")
 public class NotificationDispatchRequestDto {
 
     @NotBlank
@@ -18,7 +18,7 @@ public class NotificationDispatchRequestDto {
     private String templateId;
 
     @NotBlank
-    @Schema(example = "client.email@example.com", description = "Target delivery vector address or cellular routing endpoint line")
+    @Schema(example = "client.email@example.com", description = "Recipient email address, phone number, or push token.")
     private String destination;
 
     @NotNull
@@ -26,6 +26,6 @@ public class NotificationDispatchRequestDto {
     private Map<String, String> templateVariables;
 
     @NotBlank
-    @Schema(example = "LendingServiceEngine", description = "System boundary domain context identity issuing the notification push")
+    @Schema(example = "loan-servicing-job", description = "System user or process that triggered the notification.")
     private String actor;
 }

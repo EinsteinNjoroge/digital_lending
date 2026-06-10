@@ -31,13 +31,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/family-definitions")
 @RequiredArgsConstructor
-@Tag(name = "Loan Products management", description = "Administrative controls governing calculation execution logic clusters, state movement engines, and runtime bean strategy token allocations.")
+@Tag(name = "Loan Product Families", description = "Loan product family definition APIs.")
 public class FamilyDefinitionManagementController {
 
     private final FamilyDefinitionManagementService familyService;
 
     @PostMapping
-    @Operation(summary = "Register a brand new calculations family configuration profile blueprint", description = "Establishes structural handler path linkages. Rejects duplicates up front inside processing pools.")
+    @Operation(summary = "Create a product family", description = "Creates a reusable family definition for loan products.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Calculation framework compiled successfully and cataloged into system memory fields.", content = @Content(schema = @Schema(implementation = FamilyDefinitionResponseDto.class))),
             @ApiResponse(responseCode = "422", description = "Unprocessable Strategy Entry. A structural profile tracking equivalent system definitions tokens stands active.", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
@@ -47,7 +47,7 @@ public class FamilyDefinitionManagementController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Modify strategic handler mappings bound onto active execution layers")
+    @Operation(summary = "Update a product family")
     @Parameter(name = "id", in = ParameterIn.PATH, description = "The structural identity token key tracking the target definition template row", required = true, example = "fdef_002")
     public ResponseEntity<FamilyDefinitionResponseDto> updateFamily(
             @PathVariable("id") String id,
@@ -56,13 +56,13 @@ public class FamilyDefinitionManagementController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Fetch explicit execution layout definitions by index profile tracker key")
+    @Operation(summary = "Get a product family")
     public ResponseEntity<FamilyDefinitionResponseDto> getFamilyById(@PathVariable("id") String id) {
         return ResponseEntity.ok(familyService.getFamilyById(id));
     }
 
     @GetMapping
-    @Operation(summary = "Extract full registered loan family calculation strategies matrix arrays")
+    @Operation(summary = "List product families")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Registry array fetched completely.", content = @Content(array = @ArraySchema(schema = @Schema(implementation = FamilyDefinitionResponseDto.class))))
     })
@@ -71,7 +71,7 @@ public class FamilyDefinitionManagementController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Decommission calculation engine parameters structures logically")
+    @Operation(summary = "Deactivate a product family")
     public ResponseEntity<Void> deleteFamily(@PathVariable("id") String id) {
         familyService.logicalDeleteFamily(id);
         return ResponseEntity.noContent().build();

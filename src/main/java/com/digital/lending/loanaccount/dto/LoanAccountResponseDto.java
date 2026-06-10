@@ -9,12 +9,12 @@ import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
 @Data
-@Schema(name = "LoanAccountResponse", description = "Complete ledger view data snapshot reflecting execution statuses.")
+@Schema(name = "LoanAccountResponse", description = "Loan account details and current lifecycle state.")
 public class LoanAccountResponseDto {
     @Schema(example = "acc_882c4491-1c20-4e0c-bc1a-592b68f275ca")
     private String id;
 
-    @Schema(example = "LN-2026-08123", description = "Null while processing in PENDING_SCORE_VALIDATION state. Set once an application is approved.")
+    @Schema(example = "LN-2026-08123", description = "Assigned after the application is approved.")
     private String accountNumber;
 
     @Schema(example = "PROF-254700112233")
@@ -32,13 +32,13 @@ public class LoanAccountResponseDto {
     @Schema(example = "2500.00")
     private BigDecimal outstandingPrincipal;
 
-    @Schema(example = "6750", description = "The formal credit boundary cap captured from underwriter scorecard response evaluations.")
+    @Schema(example = "6750", description = "Credit limit captured from underwriting at approval time.")
     private Integer creditLimitAtCapture;
 
-    @Schema(example = "ACTIVE", description = "Current lifecycle phase: PENDING_SCORE_VALIDATION, APPROVED, ACTIVE, DENIED, SETTLED, CLOSED")
+    @Schema(example = "ACTIVE", description = "Current issuance state of the loan account.")
     private IssuanceStatus issuanceStatus;
 
-    @Schema(example = "ACTIVE", description = "Portfolio performance classification bucket.")
+    @Schema(example = "ACTIVE", description = "Current servicing classification.")
     private PerformanceStatus performanceStatus;
 
     @Schema(example = "acc_771b3547-5c64-42ea-aee1-39930222d111")
@@ -46,4 +46,7 @@ public class LoanAccountResponseDto {
 
     private ZonedDateTime takenAt;
     private ZonedDateTime settledAt;
+    private ZonedDateTime repaymentDueAt;
+    private Integer daysPastDue;
+    private ZonedDateTime lastServicedAt;
 }

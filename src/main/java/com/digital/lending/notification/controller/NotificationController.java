@@ -28,13 +28,13 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
-@Tag(name = "Notification Infrastructure Engine", description = "Multi-channel unified layout interpolation messaging matrix")
+@Tag(name = "Notifications", description = "Notification dispatch and audit APIs.")
 public class NotificationController {
 
     private final NotificationService service;
 
     @PostMapping
-    @Operation(summary = "Submit an outbound multi-channel message dispatch request")
+    @Operation(summary = "Send a notification")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "202", description = "Dispatch execution request successfully queued")
     })
@@ -44,8 +44,8 @@ public class NotificationController {
     }
 
     @GetMapping
-    @Operation(summary = "Fetch sent notifications in a paginated ledger layout",
-            description = "Queries historical communication records across communication channels, destinations, execution windows, and status indicators.")
+    @Operation(summary = "List notification audit logs",
+            description = "Returns sent notification records with optional filters.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved matched notification audit log entries matrix")
     })

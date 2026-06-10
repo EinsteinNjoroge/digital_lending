@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-@RestControllerAdvice(basePackageClasses = com.digital.lending.loanaccount.controller.LoanAccountController.class)
+@RestControllerAdvice(basePackages = "com.digital.lending.loanaccount.controller")
 public class AccountsModuleExceptionHandler {
 
     @ExceptionHandler(BusinessRuleViolationException.class)
@@ -25,7 +25,7 @@ public class AccountsModuleExceptionHandler {
                 .message(ex.getMessage())
                 .timestamp(ZonedDateTime.now())
                 .build();
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error); // Note: Map to 422 Unprocessable Entity
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -49,7 +49,7 @@ public class AccountsModuleExceptionHandler {
 
         ApiErrorResponse error = ApiErrorResponse.builder()
                 .errorCode("BAD_REQUEST_PAYLOAD")
-                .message("Input payload validation failed. Check parameter compliance constraints.")
+                .message("Input payload validation failed.")
                 .timestamp(ZonedDateTime.now())
                 .details(details)
                 .build();
@@ -62,9 +62,9 @@ public class AccountsModuleExceptionHandler {
 
         String cleanMessage = "Data conflict or database uniqueness constraint violation occurred.";
         if (ex.getMessage() != null && ex.getMessage().contains("uk_active_product_per_profile")) {
-            cleanMessage = "Concurrent exposure fallback blocked by database tracking logic. Profile already has an active loan of this product type.";
+            cleanMessage = "Profile already has an active loan of this product type.";
         } else if (ex.getMessage() != null && ex.getMessage().contains("uk_loan_account_accounts_idempotency")) {
-            cleanMessage = "Duplicate transaction processing blocked by unique idempotency constraint tracking safety keys.";
+            cleanMessage = "Duplicate idempotency key detected.";
         }
 
         ApiErrorResponse error = ApiErrorResponse.builder()
@@ -80,7 +80,7 @@ public class AccountsModuleExceptionHandler {
         log.error("Unhandled runtime execution fault captured: ", ex);
         ApiErrorResponse error = ApiErrorResponse.builder()
                 .errorCode("INTERNAL_SERVER_FAULT")
-                .message("A critical system execution failure occurred. Engineering team notified.")
+                .message("An unexpected internal error occurred.")
                 .timestamp(ZonedDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

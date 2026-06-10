@@ -12,6 +12,8 @@ spring:
     enabled: false
 
 app:
+  servicing:
+    enabled: false
   jwt:
     secret: 9a4f632e22d4a21a248fa6a1242e22d4a21a248fa6a1242e22d4a21a248fa6a1
     expiration-ms: 3600000

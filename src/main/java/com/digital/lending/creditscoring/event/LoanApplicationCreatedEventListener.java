@@ -9,6 +9,8 @@ import com.digital.lending.creditscoring.service.CreditScoringOrchestrationEngin
 import com.digital.lending.events.LoanApplicationApprovedEvent;
 import com.digital.lending.events.LoanApplicationCreatedEvent;
 import com.digital.lending.events.LoanApplicationRejectedEvent;
+import com.digital.lending.loanaccount.enums.IssuanceStatus;
+import com.digital.lending.loanaccount.repository.LoanAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,10 +36,12 @@ public class LoanApplicationCreatedEventListener {
     private static final String DECISION_REASON_INACTIVE_PROFILE = "The credit profile is not active for underwriting.";
     private static final String DECISION_REASON_SCORE_TOO_LOW = "The baseline credit profile score is below the approval threshold.";
     private static final String DECISION_REASON_LIMIT_EXCEEDED = "Requested amount exceeds the approved credit limit.";
+    private static final String DECISION_REASON_PORTFOLIO_EXPOSURE_EXCEEDED = "Requested amount would exceed the customer's current aggregate exposure limit.";
     private static final String DECISION_REASON_DEFAULT = "Loan application was not approved by the credit-scoring engine.";
 
     private final CreditScoringOrchestrationEngine orchestrationEngine;
     private final CreditProfileService creditProfileService;
+    private final LoanAccountRepository loanAccountRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Async
@@ -93,6 +97,16 @@ public class LoanApplicationCreatedEventListener {
 
         if (event.requestedPrincipal().compareTo(approvedLimit) > 0) {
             publishRejected(event, decisionId, DECISION_OUTCOME_DECLINED, DECISION_REASON_LIMIT_EXCEEDED, evaluatedScore);
+            return;
+        }
+
+        BigDecimal existingExposure = loanAccountRepository.sumOutstandingExposure(
+                event.profileId(),
+                event.loanAccountId(),
+                java.util.List.of(IssuanceStatus.APPROVED, IssuanceStatus.ACTIVE)
+        );
+        if (existingExposure.add(event.requestedPrincipal()).compareTo(approvedLimit) > 0) {
+            publishRejected(event, decisionId, DECISION_OUTCOME_DECLINED, DECISION_REASON_PORTFOLIO_EXPOSURE_EXCEEDED, evaluatedScore);
             return;
         }
 

@@ -60,6 +60,15 @@ public class LoanAccount {
     @Column(name = "settled_at")
     private ZonedDateTime settledAt;
 
+    @Column(name = "repayment_due_at")
+    private ZonedDateTime repaymentDueAt;
+
+    @Column(name = "days_past_due", nullable = false)
+    private Integer daysPastDue = 0;
+
+    @Column(name = "last_serviced_at")
+    private ZonedDateTime lastServicedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
 
