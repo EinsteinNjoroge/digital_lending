@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/loan-products")
 @RequiredArgsConstructor
-@Tag(name = "Loan Product Configuration Control Plane", description = "Administrative API points governing multi-tenant parameter profiles, underwriting metrics maps, and baseline system tracking rules.")
+@Tag(name = "Loan Products management", description = "Administrative API points governing multi-tenant parameter profiles, underwriting metrics maps, and baseline system tracking rules.")
 public class LoanProductManagementController {
 
     private final LoanProductManagementService productService;
