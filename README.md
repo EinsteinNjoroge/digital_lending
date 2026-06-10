@@ -11,11 +11,12 @@ It supports:
 - notifications
 - basic servicing and delinquency handling
 
-For a simple explanation of how the system fits together, see [`architecture-overview.md`](./architecture-overview.md).
+For an architectural explanation of how the system fits together, see [`architecture-overview.md`](./architecture-overview.md).
 
 ## What this project is
 
-This project is a **modular monolith** built for the lending-platform case study. It focuses on the core loan journey:
+This project is a **modular monolith** for the lending-platform. Main focus is on the core loan journey:
+
 
 1. create a customer profile
 2. define or use an existing loan product
@@ -44,8 +45,6 @@ You will need:
 
 ## Environment setup
 
-Do **not** use a real secrets file from another environment.
-
 Create your local env file from the example:
 
 ```bash
@@ -55,7 +54,7 @@ cp .env.example .env
 Then update any values you need, especially:
 - database credentials
 - SMTP credentials if you want real email delivery
-- servicing schedule
+- servicing schedul
 
 Important env values:
 - `POSTGRES_DB` - database name, default example is `digital_lending_db`
@@ -66,10 +65,14 @@ Important env values:
 
 Example default servicing schedule:
 - `0 */15 * * * *` = every 15 minutes
+- `0 0 * * * *` = at minute `0` of every hour
+- `*/30 * * * * *` = every 30 seconds
+- `0 0 0 * * *` = every day at midnight
+- `0 0 0 * * 0` = every Sunday at midnight
 
 ## Database creation
 
-If you run the project with Docker Compose, the PostgreSQL container creates the database named in `POSTGRES_DB` automatically the first time the database volume is initialized. With the provided example env file, that database is:
+If you run the project with Docker Compose (as described in the next step), the PostgreSQL container creates the database named in `POSTGRES_DB` automatically the first time the database volume is initialized. With the provided example env file, that database is:
 
 - `digital_lending_db`
 
@@ -85,7 +88,7 @@ If you are using your own local PostgreSQL instance instead of Docker, create th
 psql -U postgres -d postgres -c "SELECT 'CREATE DATABASE digital_lending_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'digital_lending_db')\\gexec"
 ```
 
-After that, start the application and Flyway will create the schema objects inside `digital_lending_db`.
+Start the application and Flyway will create the schema objects inside `digital_lending_db`.
 
 ## Run with Docker Compose
 
@@ -130,29 +133,6 @@ The project includes Flyway migrations and seed data for:
 Helpful files:
 - `src/main/resources/db/migration`
 - `postman_collection.json`
-
-## Servicing and delinquency job
-
-A scheduled job now calls the internal loan-account servicing endpoint:
-
-- endpoint: `POST /api/v1/internal/loan-accounts/servicing/run`
-
-What it does:
-- finds active loans past their simplified repayment due date
-- updates `daysPastDue`
-- moves accounts into `WATCH` or `DOUBTFUL`
-- writes audit history
-- publishes overdue events
-- triggers notification flow
-
-This is intentionally simple for the assignment. A production system would usually use a fuller repayment schedule and stronger retry/outbox patterns.
-
-## Authentication note
-
-The intended production direction is **JWT-based authentication**.
-
-JWT dependencies are present, but auth is **not implemented in this submission** because it is out of scope for this case study. In the current dev setup, requests are open so the functional loan flows are easy to review.
-
 
 ## Run tests
 
