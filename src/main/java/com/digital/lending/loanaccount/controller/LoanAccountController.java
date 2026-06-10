@@ -32,15 +32,15 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @RestController
 @RequestMapping("/api/v1/loan-accounts")
 @RequiredArgsConstructor
-@Tag(name = "Accounts Management", description = "Asynchronous accounting system handling decoupled drawdown workflows.")
+@Tag(name = "Loan Accounts", description = "Loan application, servicing, and account lifecycle APIs.")
 public class LoanAccountController {
 
     private final LoanAccountManagementService accountService;
 
     @PostMapping
     @Operation(
-            summary = "Initiate an asynchronous loan drawdown request",
-            description = "Creates an initial immutable record line inside the database ledger context in DRAFT status, fires an internal Spring transaction event, and immediately returns the un-underwritten asset placeholder profile frame.")
+            summary = "Create a loan application",
+            description = "Creates a pending loan account and starts the underwriting workflow.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Application accepted and added to processing tracking chains.",
                     content = @Content(schema = @Schema(implementation = LoanAccountResponseDto.class))),
@@ -54,7 +54,7 @@ public class LoanAccountController {
     }
 
     @PatchMapping("/{id}/performance-status")
-    @Operation(summary = "Modify the active credit classification tracking metric for an open asset row record line")
+    @Operation(summary = "Update loan performance status")
     public ResponseEntity<LoanAccountResponseDto> patchStatus(
             @PathVariable("id") String id,
             @Valid @RequestBody StatusModificationRequestDto request,
@@ -63,7 +63,7 @@ public class LoanAccountController {
     }
 
     @GetMapping
-    @Operation(summary = "Search ledger lines using multi-matrix slice filters")
+    @Operation(summary = "List loan accounts")
     public ResponseEntity<Page<LoanAccountResponseDto>> getLedger(
             @RequestParam(value = "profileId", required = false) String profileId,
             @RequestParam(value = "status", required = false) PerformanceStatus status,

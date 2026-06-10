@@ -17,6 +17,8 @@ import com.digital.lending.loanaccount.model.LoanAccount;
 import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
 import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
 import com.digital.lending.loanaccount.repository.LoanAccountRepository;
+import com.digital.lending.loanproduct.model.LoanProductConfiguration;
+import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,8 +47,11 @@ public class LoanAccountManagementService {
     private static final String PAYMENT_CATEGORY_REPAYMENT = "REPAYMENT";
     private static final String PAYMENT_EVENT_LISTENER_ACTOR = "payment-event-listener";
 
+    private static final int DEFAULT_REPAYMENT_DUE_DAYS = 30;
+
     private final LoanAccountRepository accountRepository;
     private final LoanAccountAuditLogRepository auditLogRepository;
+    private final LoanProductConfigurationRepository loanProductConfigurationRepository;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -71,6 +76,7 @@ public class LoanAccountManagementService {
         account.setOutstandingPrincipal(request.getInitialPrincipal());
         account.setIssuanceStatus(IssuanceStatus.PENDING_SCORE_VALIDATION);
         account.setParentLoanAccountId(request.getParentLoanAccountId());
+        account.setDaysPastDue(0);
         account.setCreatedAt(ZonedDateTime.now());
         account.setUpdatedAt(ZonedDateTime.now());
 
@@ -205,9 +211,13 @@ public class LoanAccountManagementService {
         }
 
         LoanAccount snapshotBefore = cloneState(account);
+        ZonedDateTime activationTime = ZonedDateTime.now();
         account.setIssuanceStatus(IssuanceStatus.ACTIVE);
-        account.setTakenAt(ZonedDateTime.now());
-        account.setUpdatedAt(ZonedDateTime.now());
+        account.setTakenAt(activationTime);
+        account.setRepaymentDueAt(resolveRepaymentDueAt(account.getLoanProductId(), activationTime));
+        account.setDaysPastDue(0);
+        account.setLastServicedAt(activationTime);
+        account.setUpdatedAt(activationTime);
         LoanAccount activated = accountRepository.save(account);
         writeAuditLog(activated.getId(), "LOAN_DISBURSED", snapshotBefore, activated, paymentEvent.transactionId(), PAYMENT_EVENT_LISTENER_ACTOR);
     }
@@ -230,6 +240,8 @@ public class LoanAccountManagementService {
             account.setIssuanceStatus(IssuanceStatus.SETTLED);
             account.setPerformanceStatus(PerformanceStatus.SETTLED);
             account.setSettledAt(ZonedDateTime.now());
+            account.setRepaymentDueAt(null);
+            account.setDaysPastDue(0);
         }
 
         LoanAccount saved = accountRepository.save(account);
@@ -295,6 +307,9 @@ public class LoanAccountManagementService {
         clone.setAccountNumber(target.getAccountNumber());
         clone.setOutstandingPrincipal(target.getOutstandingPrincipal());
         clone.setSettledAt(target.getSettledAt());
+        clone.setRepaymentDueAt(target.getRepaymentDueAt());
+        clone.setDaysPastDue(target.getDaysPastDue());
+        clone.setLastServicedAt(target.getLastServicedAt());
         return clone;
     }
 
@@ -313,6 +328,47 @@ public class LoanAccountManagementService {
         dto.setParentLoanAccountId(entity.getParentLoanAccountId());
         dto.setTakenAt(entity.getTakenAt());
         dto.setSettledAt(entity.getSettledAt());
+        dto.setRepaymentDueAt(entity.getRepaymentDueAt());
+        dto.setDaysPastDue(entity.getDaysPastDue());
+        dto.setLastServicedAt(entity.getLastServicedAt());
         return dto;
+    }
+
+    private ZonedDateTime resolveRepaymentDueAt(String loanProductId, ZonedDateTime activationTime) {
+        return loanProductConfigurationRepository.findById(loanProductId)
+                .map(this::resolveRepaymentDueDays)
+                .map(activationTime::plusDays)
+                .orElse(activationTime.plusDays(DEFAULT_REPAYMENT_DUE_DAYS));
+    }
+
+    private long resolveRepaymentDueDays(LoanProductConfiguration productConfiguration) {
+        Map<String, String> parameters = productConfiguration.getParameters().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        parameter -> parameter.getParameterKey().toLowerCase(),
+                        parameter -> parameter.getParameterValue(),
+                        (first, second) -> first));
+
+        return firstNumericValue(parameters,
+                "repayment_due_days",
+                "max_tenor_days",
+                "review_cycle_days",
+                "season_length_days",
+                "merchant_settlement_delay_days")
+                .orElse((long) DEFAULT_REPAYMENT_DUE_DAYS);
+    }
+
+    private java.util.Optional<Long> firstNumericValue(Map<String, String> parameters, String... keys) {
+        for (String key : keys) {
+            String value = parameters.get(key);
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            try {
+                return java.util.Optional.of(Long.parseLong(value));
+            } catch (NumberFormatException ex) {
+                log.warn("Ignoring non-numeric loan product parameter {}={} while resolving repayment due date", key, value);
+            }
+        }
+        return java.util.Optional.empty();
     }
 }

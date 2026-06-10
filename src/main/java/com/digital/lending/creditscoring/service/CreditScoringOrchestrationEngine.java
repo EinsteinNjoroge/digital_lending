@@ -65,7 +65,7 @@ public class CreditScoringOrchestrationEngine {
         try {
             if (rules.getKnockOutRules() != null) {
                 for (KnockOutRule koRule : rules.getKnockOutRules()) {
-                    boolean isTriggered = evaluationEngine.evaluatesKnockOut(koRule, resolvedFeatures);
+                    boolean isTriggered = evaluationEngine.isKnockOutTriggered(koRule, resolvedFeatures);
                     if (isTriggered) {
                         decisionOutcome = "DECLINED";
                         auditTrace.put("KO_TRIGGERED", koRule.getFeature() + " met rejection condition rule boundary.");
@@ -87,7 +87,7 @@ public class CreditScoringOrchestrationEngine {
             double minRequired = rules.getDecisionThresholds() != null ? rules.getDecisionThresholds().getMinimumScoreRequired() : 0.0;
             if (finalScore < minRequired) {
                 decisionOutcome = "DECLINED";
-                auditTrace.put("DECISION_REASON", "Calculated total score " + finalScore + " fell below baseline metric rule target " + minRequired);
+                auditTrace.put("DECISION_REASON", "Calculated score " + finalScore + " is below the minimum required score of " + minRequired);
 
                 return persistAndReturn(transactionId, profileId, partnerId, modelDefinitionId,
                         finalScore, decisionOutcome, computedLimit, resolvedFeatures, auditTrace);
@@ -98,7 +98,7 @@ public class CreditScoringOrchestrationEngine {
             computedLimit = referenceVolume * baseMultiplier;
 
             decisionOutcome = "APPROVED";
-            auditTrace.put("DECISION_REASON", "Scorecard profile criteria passed operational boundaries completely.");
+            auditTrace.put("DECISION_REASON", "Scorecard rules passed.");
 
         } catch (Exception e) {
             log.error("Failed to execute risk matrix evaluation loop context for profile: {}", profileId, e);

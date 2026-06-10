@@ -18,6 +18,9 @@ import com.digital.lending.loanaccount.model.LoanAccountAuditLog;
 import com.digital.lending.loanaccount.repository.LoanAccountAuditLogRepository;
 import com.digital.lending.loanaccount.repository.LoanAccountRepository;
 import com.digital.lending.loanaccount.service.LoanAccountManagementService;
+import com.digital.lending.loanproduct.model.LoanProductConfiguration;
+import com.digital.lending.loanproduct.model.LoanProductParameter;
+import com.digital.lending.loanproduct.repository.LoanProductConfigurationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +58,9 @@ class LoanAccountManagementServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private LoanProductConfigurationRepository loanProductConfigurationRepository;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -256,6 +262,8 @@ class LoanAccountManagementServiceTest {
         void shouldActivateApprovedLoanOnCompletedDisbursement() {
             when(accountRepository.findByAccountNumber("LN-2026-12345")).thenReturn(Optional.of(approvedAccount));
             when(accountRepository.save(any(LoanAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(loanProductConfigurationRepository.findById(approvedAccount.getLoanProductId()))
+                    .thenReturn(Optional.of(productWithParameter(approvedAccount.getLoanProductId(), "max_tenor_days", "30")));
 
             service.processPaymentEvent(new PaymentEvent(
                     "tx_1", "PROF-10029", "LN-2026-12345", "DISBURSEMENT", "INTERNAL", "COMPLETED",
@@ -264,6 +272,7 @@ class LoanAccountManagementServiceTest {
 
             assertEquals(IssuanceStatus.ACTIVE, approvedAccount.getIssuanceStatus());
             assertNotNull(approvedAccount.getTakenAt());
+            assertNotNull(approvedAccount.getRepaymentDueAt());
         }
 
         @Test
@@ -292,6 +301,7 @@ class LoanAccountManagementServiceTest {
 
             assertEquals(0, BigDecimal.ZERO.compareTo(activeAccount.getOutstandingPrincipal()));
             assertEquals(IssuanceStatus.SETTLED, activeAccount.getIssuanceStatus());
+            assertNull(activeAccount.getRepaymentDueAt());
             verify(eventPublisher).publishEvent(any(LoanAccountSettledEvent.class));
         }
     }
@@ -341,5 +351,17 @@ class LoanAccountManagementServiceTest {
 
             assertEquals(PerformanceStatus.WATCH, result.getPerformanceStatus());
         }
+    }
+
+    private LoanProductConfiguration productWithParameter(String productId, String key, String value) {
+        LoanProductConfiguration product = new LoanProductConfiguration();
+        product.setId(productId);
+
+        LoanProductParameter parameter = new LoanProductParameter();
+        parameter.setProduct(product);
+        parameter.setParameterKey(key);
+        parameter.setParameterValue(value);
+        product.setParameters(java.util.List.of(parameter));
+        return product;
     }
 }

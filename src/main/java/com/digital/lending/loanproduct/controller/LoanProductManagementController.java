@@ -33,13 +33,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/loan-products")
 @RequiredArgsConstructor
-@Tag(name = "Loan Products management", description = "Administrative API points governing multi-tenant parameter profiles, underwriting metrics maps, and baseline system tracking rules.")
+@Tag(name = "Loan Products", description = "Loan product configuration APIs.")
 public class LoanProductManagementController {
 
     private final LoanProductManagementService productService;
 
     @PostMapping
-    @Operation(summary = "Provision a brand new versioned loan product footprint", description = "Creates a new entry under a specified product code. Automatically increments the sequence version mapping trail while enforcing multi-tenant uniqueness boundaries.")
+    @Operation(summary = "Create a loan product", description = "Creates a partner and currency specific product configuration.")
     @Parameter(name = "X-Modified-By", in = ParameterIn.HEADER, description = "System operator execution user token mapping coordinates", required = true, schema = @Schema(type = "string"), example = "developer.engineering@ezra.co")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Product parameters persisted safely inside ledger cache graphs.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductConfigurationResponseDto.class))),
@@ -53,7 +53,7 @@ public class LoanProductManagementController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update attributes of an operational configuration strategy instance mapping", description = "Modifies core parameters tables maps by safely detaching database tracking graphs cleanly inside isolated transactions.")
+    @Operation(summary = "Update a loan product", description = "Updates product metadata, parameters, and document matrices.")
     @Parameters({
             @Parameter(name = "id", in = ParameterIn.PATH, description = "The standard 36-character hyphenated UUID tracking reference string reference parameter", required = true, example = "f186e626-c8b0-4e0c-bc1a-592b68f275ca"),
             @Parameter(name = "X-Modified-By", in = ParameterIn.HEADER, description = "Operator execution entity name context parameters", required = true, example = "compliance.manager@ezra.co")
@@ -70,13 +70,13 @@ public class LoanProductManagementController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Fetch explicit specifications of a single operational configuration target")
+    @Operation(summary = "Get a loan product")
     public ResponseEntity<ProductConfigurationResponseDto> getProductById(@PathVariable("id") String id) {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
     @GetMapping
-    @Operation(summary = "Query and discover active routing configurations filtered by partner variables")
+    @Operation(summary = "List loan products")
     public ResponseEntity<List<ProductConfigurationResponseDto>> getProducts(
             @RequestParam(value = "partnerId", required = false) String partnerId,
             @RequestParam(value = "currency", required = false) String currency,
@@ -85,7 +85,7 @@ public class LoanProductManagementController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Perform a cascading logical decommissioning of a loan product layout")
+    @Operation(summary = "Deactivate a loan product")
     public ResponseEntity<Void> deleteProduct(
             @PathVariable("id") String id,
             @RequestHeader("X-Modified-By") String modifiedBy) {

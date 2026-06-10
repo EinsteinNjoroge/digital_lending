@@ -10,7 +10,7 @@ import java.util.Map;
 @Service
 public class RuleEvaluationEngine {
 
-    public boolean evaluatesKnockOut(KnockOutRule rule, Map<String, String> features) {
+    public boolean isKnockOutTriggered(KnockOutRule rule, Map<String, String> features) {
         if (!features.containsKey(rule.getFeature())) {
             return true;
         }

@@ -84,7 +84,7 @@ class CreditScoringOrchestrationEngineTest {
         koRule.setFeature("sim_age_days");
         sampleRules.setKnockOutRules(Collections.singletonList(koRule));
 
-        when(evaluationEngine.evaluatesKnockOut(eq(koRule), eq(resolvedFeatures))).thenReturn(true);
+        when(evaluationEngine.isKnockOutTriggered(eq(koRule), eq(resolvedFeatures))).thenReturn(true);
 
         CreditDecisionResponse response = orchestrationEngine.evaluateCreditRisk(
                 txId, "CUST-002", "SAF_KE_01", "KES", "MODEL-V1", resolvedFeatures, sampleRules);
@@ -114,7 +114,7 @@ class CreditScoringOrchestrationEngineTest {
         assertThat(response.getDecisionOutcome()).isEqualTo("DECLINED");
         assertThat(response.getScoreCalculated()).isEqualTo(30.0);
         assertThat(response.getCreditLimitAllocated()).isEqualTo(0.0);
-        assertThat(response.getEvaluationTrace().get("DECISION_REASON")).contains("fell below baseline metric");
+        assertThat(response.getEvaluationTrace().get("DECISION_REASON")).contains("minimum required score");
 
         verify(decisionLogRepository, times(1)).save(any(CreditScoringDecisionLog.class));
     }
