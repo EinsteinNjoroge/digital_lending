@@ -20,8 +20,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/app
     container_name: digital_lending_app_container
     environment:
       APP_PORT: ${APP_PORT}
